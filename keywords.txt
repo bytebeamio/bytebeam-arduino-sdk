@@ -1,0 +1,23 @@
+#######################################
+# Syntax Coloring Map For PubSubClient
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Bytebeam	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin 	KEYWORD2
+publish 	KEYWORD2
+subscribe 	KEYWORD2
+loop 	KEYWORD2
+end 	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
