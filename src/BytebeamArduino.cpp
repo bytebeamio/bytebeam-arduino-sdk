@@ -10,6 +10,8 @@ void subscribeCallback(char* topic, byte* message, unsigned int length) {
     Serial.print((char)message[i]);
   }
   Serial.println("}");
+
+  Bytebeam.handleActions((char*)message);
 }
 
 BytebeamArduino::BytebeamArduino() {
@@ -107,6 +109,27 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   return true;
 }
 
+void BytebeamArduino::initActionHandlerArray() {
+  int loopVar = 0;
+  for (loopVar = 0; loopVar < BYTEBEAM_NUMBER_OF_ACTIONS; loopVar++) {
+    this->actionFuncs[loopVar].func = NULL;
+    this->actionFuncs[loopVar].name = NULL;
+  }
+}
+
+boolean BytebeamArduino::subscribeToActions() {
+  int maxLen = 200;
+  char topic[maxLen] = { 0 };
+  int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
+
+  if(tempVar > maxLen) {
+    Serial.println("subscribe topic size exceeded buffer size");
+    return false;
+  }
+
+  return subscribe(topic);
+}
+
 boolean BytebeamArduino::begin() {
   if(!readDeviceConfigFile()) {
     Serial.println("begin abort, error while reading the device config file...");
@@ -122,11 +145,40 @@ boolean BytebeamArduino::begin() {
   PubSubClient::setCallback(subscribeCallback);
   PubSubClient::setServer(mqttBrokerUrl, mqttPort);
 
+  initActionHandlerArray();
+
   if(!PubSubClient::connect("BytebeamArduino")) {
     Serial.println("error while connecting to server...");
     return false;
+  }
+  Serial.println("bytebeam client connected successfully !");
+
+  if(!subscribeToActions()) {
+    Serial.println("error while subscribe to actions...");
+    return false;
+  }
+  Serial.println("bytebeam client subscribed to actions successfully !");
+
+  return true;
+}
+
+boolean BytebeamArduino::loop() {
+  Serial.println("I am BytebeamArduino::loop()");
+
+  if(!PubSubClient::loop()) {
+    Serial.println("error while maintaining the connection to the server...");
+    return false;
+  }
+
+  return true;
+}
+
+boolean BytebeamArduino::connected() {
+  if(!PubSubClient::connected()) {
+    Serial.println("bytebeam client is not connected to the server !");
+    return false;
   } else {
-    Serial.println("bytebeam client connected successfully !");
+    Serial.println("bytebeam client is connected to the server !");
     return true;
   }
 }
@@ -176,25 +228,73 @@ boolean BytebeamArduino::unsubscribe(const char* topic) {
   }
 }
 
-boolean BytebeamArduino::loop() {
-  Serial.println("I am BytebeamArduino::loop()");
+boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
+  StaticJsonDocument<1024> actionReceivedJson;
+  DeserializationError err = deserializeJson(actionReceivedJson, actionReceivedStr);
 
-  if(!PubSubClient::loop()) {
-    Serial.println("error while maintaining the connection to the server...");
+  if(err) {
+    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
     return false;
+  } else {
+    Serial.println("deserializeJson() success");
+  }
+  
+  Serial.println("Obtaining action variables");
+  
+  const char* name     = actionReceivedJson["name"];
+  const char* id       = actionReceivedJson["id"];
+  const char* payload  = actionReceivedJson["payload"];
+  const char* kind     = actionReceivedJson["kind"];
+  
+  const char* argsName[] = {"name", "id", "payload", "kind"};
+  const char* argsStr[] = {name, id, payload, kind};
+  int numArg = sizeof(argsStr)/sizeof(argsStr[0]);
+  
+  int argIterator = 0;
+  for(argIterator = 0; argIterator < numArg; argIterator++) {
+    if(argsStr[argIterator] == NULL) {
+      Serial.printf("- failed to obtain %s\n", argsName[argIterator]);
+      return false;
+    }
+  }
+  Serial.println("- obtain action variables");
+
+  #if DEBUG_BYTEBEAM_ARDUINO
+    Serial.println(name);
+    Serial.println(id);
+    Serial.println(payload);
+    Serial.println(kind);
+  #endif
+
+  int actionIterator = 0;
+  while(actionFuncs[actionIterator].name) {
+    if (!strcmp(actionFuncs[actionIterator].name, name)) {
+        actionFuncs[actionIterator].func((char*)payload, (char*)id);
+        break;
+    }
+    actionIterator++;
+  }
+
+  if(actionFuncs[actionIterator].name == NULL) {
+    Serial.printf("invalid action : %s\n", name);
   }
 
   return true;
 }
 
-boolean BytebeamArduino::connected() {
-  if(!PubSubClient::connected()) {
-    Serial.println("bytebeam client is not connected to the server !");
+boolean BytebeamArduino::addActionHandler(int (*func_ptr)(char* args, char* actionId), char* func_name) {
+  static int functionHandlerIndex = 0;
+  if (functionHandlerIndex >= BYTEBEAM_NUMBER_OF_ACTIONS) {
+    Serial.println("creation of new action handler failed...");
     return false;
-  } else {
-    Serial.println("bytebeam client is connected to the server !");
-    return true;
   }
+
+  this->actionFuncs[functionHandlerIndex].func = func_ptr;
+  this->actionFuncs[functionHandlerIndex].name = func_name;
+
+  functionHandlerIndex = functionHandlerIndex + 1;
+
+  return true;
 }
 
 void BytebeamArduino::end() {
