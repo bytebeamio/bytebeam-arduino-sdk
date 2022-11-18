@@ -1,11 +1,22 @@
 #include "BytebeamArduino.h"
 
+unsigned long getEpochTime() {
+  time_t now;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return(0);
+  }
+  time(&now);
+  return now;
+}
+
 void subscribeCallback(char* topic, byte* message, unsigned int length) {
   Serial.println("I am subscribeCallback()");
 
-  Serial.print("{Topic : ");
+  Serial.print("{topic : ");
   Serial.print(topic);
-  Serial.print(", Message : ");
+  Serial.print(", message : ");
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
   }
@@ -123,7 +134,7 @@ boolean BytebeamArduino::subscribeToActions() {
   int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
 
   if(tempVar > maxLen) {
-    Serial.println("subscribe topic size exceeded buffer size");
+    Serial.println("subscribe action topic size exceeded topic buffer size");
     return false;
   }
 
@@ -183,21 +194,6 @@ boolean BytebeamArduino::connected() {
   }
 }
 
-boolean BytebeamArduino::publish(const char* topic, const char* payload) {
-  if(!PubSubClient::connected()) {
-    Serial.printf("publish abort, topic : %s. bytebeam client is not connected to the server...\n", topic);
-    return false;
-  }
-
-  if(!PubSubClient::publish(topic, payload)) {
-    Serial.printf("publish failed, topic : %s\n", topic);
-    return false;
-  } else {
-    Serial.printf("publish success, topic : %s\n", topic);
-    return true;
-  }
-}
-
 boolean BytebeamArduino::subscribe(const char* topic) {
   if(!PubSubClient::connected()) {
     Serial.printf("subscribe abort, topic : %s. bytebeam client is not connected to the server...\n", topic);
@@ -224,6 +220,21 @@ boolean BytebeamArduino::unsubscribe(const char* topic) {
     return false;
   } else {
     Serial.printf("unsubscribe success, topic : %s\n", topic);
+    return true;
+  }
+}
+
+boolean BytebeamArduino::publish(const char* topic, const char* payload) {
+  if(!PubSubClient::connected()) {
+    Serial.printf("publish abort, topic : %s. bytebeam client is not connected to the server...\n", topic);
+    return false;
+  }
+
+  if(!PubSubClient::publish(topic, payload)) {
+    Serial.printf("publish failed, {topic : %s, message : %s}\n", topic, payload);
+    return false;
+  } else {
+    Serial.printf("publish success, {topic : %s, message : %s}\n", topic, payload);
     return true;
   }
 }
@@ -295,6 +306,96 @@ boolean BytebeamArduino::addActionHandler(int (*func_ptr)(char* args, char* acti
   functionHandlerIndex = functionHandlerIndex + 1;
 
   return true;
+}
+
+boolean BytebeamArduino::publishActionCompleted(char* actionId) {
+  char tempActionId[20];
+  strcpy(tempActionId, actionId);
+
+  if(!publishActionStatus(tempActionId, 100, "Completed", "No Error")) {
+    Serial.printf("publish action completed response failed, action_id : %s\n", tempActionId);
+    return false;
+  } else {
+    Serial.printf("publish action completed response success, action_id : %s\n", tempActionId);
+    return true;
+  }
+}
+
+boolean BytebeamArduino::publishActionFailed(char* actionId) {
+  char tempActionId[20];
+  strcpy(tempActionId, actionId);
+
+  if(!publishActionStatus(tempActionId, 0, "Failed", "Action Failed")) {
+    Serial.printf("publish action failed response failed, action_id : %s\n", tempActionId);
+    return false;
+  } else {
+    Serial.printf("publish action failed response success, action_id : %s\n", tempActionId);
+    return true;
+  }
+}
+
+boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
+  char tempActionId[20];
+  strcpy(tempActionId, actionId);
+
+  if(!publishActionStatus(tempActionId, progressPercentage, "Progress", "No Error")) {
+    Serial.printf("publish action progress response failed, action_id : %s\n", tempActionId);
+    return false;
+  } else {
+    Serial.printf("publish action progress response success, action_id : %s\n", tempActionId);
+    return true;
+  }
+}
+
+boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercentage, char* status, char* error) {
+  static int sequence = 0;
+  const char* payload = "";
+  String actionStatusStr = "";
+  StaticJsonDocument<1024> doc;
+
+  sequence++;
+  long long milliseconds = getEpochTime() * 1000LL;
+
+  JsonArray actionStatusJsonArray = doc.to<JsonArray>();
+  JsonObject actionStatusJsonObj_1 = actionStatusJsonArray.createNestedObject();
+
+  actionStatusJsonObj_1["timestamp"] = milliseconds;
+  actionStatusJsonObj_1["sequence"]  = sequence;
+  actionStatusJsonObj_1["state"]     = status;
+  actionStatusJsonObj_1["errors"][0] = error;
+  actionStatusJsonObj_1["id"]        = actionId;
+  actionStatusJsonObj_1["progress"]  = progressPercentage;
+  
+  serializeJson(actionStatusJsonArray, actionStatusStr);
+  payload = actionStatusStr.c_str();
+
+  #if DEBUG_BYTEBEAM_ARDUINO
+    Serial.println(payload);
+  #endif
+
+  int maxLen = 300;
+  char topic[maxLen] = { 0 };
+  int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
+
+  if(tempVar > maxLen) {
+    Serial.println("action status topic size exceeded topic buffer size");
+    return false;
+  }
+  
+  return publish(topic, payload);
+}
+
+boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) {
+  int maxLen = 200;
+  char topic[maxLen] = { 0 };
+  int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/events/%s/jsonarray", this->projectId, this->deviceId, streamName);
+
+  if(tempVar > maxLen) {
+    Serial.println("publish topic size exceeded buffer size");
+    return false;
+  }
+
+  return publish(topic, payload);
 }
 
 void BytebeamArduino::end() {

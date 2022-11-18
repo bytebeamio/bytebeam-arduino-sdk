@@ -53,7 +53,12 @@ public:
     /* bytebeam action handling api's*/
     boolean handleActions(char* actionReceivedStr);
     boolean addActionHandler(int (*func_ptr)(char* args, char* actionId), char* func_name);
-
+    boolean publishActionCompleted(char* actionId);
+    boolean publishActionFailed(char* actionId);
+    boolean publishActionProgress(char* actionId, int progressPercentage);
+    boolean publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
+    boolean publishToStream(char* streamName, const char* payload);
+    
     void end();
 
 private:

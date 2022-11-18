@@ -13,7 +13,7 @@ const char* WIFI_PASSWORD = "mayank_777";
 
 // SNTP Credentials
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 3600;
+const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 
 // tetsing variables
@@ -21,16 +21,52 @@ int ledState = 1;
 int pubSubCnt = 0;
 const char* mqttTopic = "/tenants/espbytebeamsdktest/devices/1/events/device_shadow/jsonarray";
 
+// function to get the time
+unsigned long getTime() {
+  time_t now;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return(0);
+  }
+  time(&now);
+  return now;
+}
+
+// function for toggleBoardLed action handler
 int toggleBoardLed(char* args, char* actionId) {
-  Serial.println("**************************************************************");
-  Serial.print("args : ");
-  Serial.println(args);
-  Serial.print("actionId : ");
-  Serial.println(actionId);
-  Serial.println("**************************************************************");
+  Serial.printf("*** args : %s , actionId : %s ***\n", args, actionId);
 
   ledState = !ledState;
   digitalWrite(BOARD_LED, ledState);
+
+  Bytebeam.publishActionCompleted(actionId);
+}
+
+// function to publish payload to device shadow
+void publishToDeviceShadow() {
+  static int sequence = 0;
+  const char* payload = "";
+  String actionStatusStr = "";
+  StaticJsonDocument<1024> doc;
+
+  sequence++;
+  long long milliseconds = getTime() * 1000LL;
+
+  JsonArray actionStatusJsonArray = doc.to<JsonArray>();
+  JsonObject actionStatusJsonObj_1 = actionStatusJsonArray.createNestedObject();
+
+  actionStatusJsonObj_1["timestamp"] = milliseconds;
+  actionStatusJsonObj_1["sequence"]  = sequence;
+  actionStatusJsonObj_1["Status"]    = "dummy device shaodow status";
+  actionStatusJsonObj_1["name"]      = "mayank";
+  
+  serializeJson(actionStatusJsonArray, actionStatusStr);
+  payload = actionStatusStr.c_str();
+
+  Serial.printf("publishing %s to device shadow\n", payload);
+
+  Bytebeam.publishToStream("device_shadow", payload);
 }
 
 // function to connect to wifi with predefined credentials
@@ -72,10 +108,11 @@ void setup() {
 
   setupWifi();
   syncTimeFromNtp();
-
+  
   Bytebeam.begin();
   // Bytebeam.subscribe(mqttTopic);
   Bytebeam.addActionHandler(toggleBoardLed, "toggleBoardLed");
+  publishToDeviceShadow();
   delay(100);
 }
 
@@ -83,7 +120,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   Bytebeam.loop();
   // Bytebeam.publish(mqttTopic, "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}");
-  delay(10000);
+  delay(5000);
 
   // pubSubCnt++;
   // if(pubSubCnt == 5) {
