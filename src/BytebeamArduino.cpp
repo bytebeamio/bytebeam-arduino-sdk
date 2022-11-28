@@ -1,18 +1,7 @@
 #include "BytebeamArduino.h"
 
-unsigned long getEpochTime() {
-  time_t now;
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
-    return(0);
-  }
-  time(&now);
-  return now;
-}
-
-void subscribeCallback(char* topic, byte* message, unsigned int length) {
-  Serial.println("I am subscribeCallback()");
+void SubscribeCallback(char* topic, byte* message, unsigned int length) {
+  Serial.println("I am SubscribeCallback()");
 
   Serial.print("{topic : ");
   Serial.print(topic);
@@ -25,15 +14,58 @@ void subscribeCallback(char* topic, byte* message, unsigned int length) {
   Bytebeam.handleActions((char*)message);
 }
 
+unsigned long getEpochTime() {
+  time_t now;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return(0);
+  }
+  time(&now);
+  return now;
+}
+
+int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
+  char constructedUrl[200] = { 0 };
+
+  if(!BytebeamOta.parseOTAJson(otaPayloadStr, constructedUrl)) {
+    Serial.println("ota abort, error while parsing the ota json...");
+    return false;
+  }
+
+  if(!BytebeamOta.performOTA(actionId, constructedUrl)) {
+    Serial.println("ota abort, error while performing https ota...");
+    return false;
+  }
+
+  return 0;
+}
+
 BytebeamArduino::BytebeamArduino() {
-  Serial.println("I am BytebeamArduino::BytebeamArduino()");
+  this->mqttPort = -1;
+  this->mqttBrokerUrl = NULL;
+  this->deviceId = NULL;
+  this->projectId = NULL;
+  this->caCertPem = NULL;
+  this->clientCertPem = NULL;
+  this->clientKeyPem = NULL;
+
+  initActionHandlerArray();
 }
 
 BytebeamArduino::~BytebeamArduino() {
   Serial.println("I am BytebeamArduino::~BytebeamArduino()");
 } 
 
-bool BytebeamArduino::readDeviceConfigFile() {
+void BytebeamArduino::initActionHandlerArray() {
+  int loopVar = 0;
+  for (loopVar = 0; loopVar < BYTEBEAM_NUMBER_OF_ACTIONS; loopVar++) {
+    this->actionFuncs[loopVar].func = NULL;
+    this->actionFuncs[loopVar].name = NULL;
+  }
+}
+
+boolean BytebeamArduino::readDeviceConfigFile() {
   if (!SPIFFS.begin(true, "/spiffs")) {
     Serial.println("spiffs mount failed");
     return false;
@@ -113,85 +145,19 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
     Serial.println(this->clientKeyPem);
   #endif
 
+  return true;
+}
+
+boolean BytebeamArduino::setupBytebeamClient() {
   secureClient.setCACert(this->caCertPem);
   secureClient.setCertificate(this->clientCertPem); 
   secureClient.setPrivateKey(this->clientKeyPem);
 
-  return true;
-}
-
-void BytebeamArduino::initActionHandlerArray() {
-  int loopVar = 0;
-  for (loopVar = 0; loopVar < BYTEBEAM_NUMBER_OF_ACTIONS; loopVar++) {
-    this->actionFuncs[loopVar].func = NULL;
-    this->actionFuncs[loopVar].name = NULL;
-  }
-}
-
-boolean BytebeamArduino::subscribeToActions() {
-  int maxLen = 200;
-  char topic[maxLen] = { 0 };
-  int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
-
-  if(tempVar > maxLen) {
-    Serial.println("subscribe action topic size exceeded topic buffer size");
-    return false;
-  }
-
-  return subscribe(topic);
-}
-
-boolean BytebeamArduino::begin() {
-  if(!readDeviceConfigFile()) {
-    Serial.println("begin abort, error while reading the device config file...");
-    return false;
-  }
-            
-  if(!parseDeviceConfigFile()) {
-    Serial.println("begin abort, error while parsing the device config file...");
-    return false;
-  }
-
   PubSubClient::setClient(secureClient);
-  PubSubClient::setCallback(subscribeCallback);
-  PubSubClient::setServer(mqttBrokerUrl, mqttPort);
+  PubSubClient::setCallback(SubscribeCallback);
+  PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
 
-  initActionHandlerArray();
-
-  if(!PubSubClient::connect("BytebeamArduino")) {
-    Serial.println("error while connecting to server...");
-    return false;
-  }
-  Serial.println("bytebeam client connected successfully !");
-
-  if(!subscribeToActions()) {
-    Serial.println("error while subscribe to actions...");
-    return false;
-  }
-  Serial.println("bytebeam client subscribed to actions successfully !");
-
-  return true;
-}
-
-boolean BytebeamArduino::loop() {
-  Serial.println("I am BytebeamArduino::loop()");
-
-  if(!PubSubClient::loop()) {
-    Serial.println("error while maintaining the connection to the server...");
-    return false;
-  }
-
-  return true;
-}
-
-boolean BytebeamArduino::connected() {
-  if(!PubSubClient::connected()) {
-    Serial.println("bytebeam client is not connected to the server !");
-    return false;
-  } else {
-    Serial.println("bytebeam client is connected to the server !");
-    return true;
-  }
+  return PubSubClient::connect("BytebeamClient");
 }
 
 boolean BytebeamArduino::subscribe(const char* topic) {
@@ -239,6 +205,149 @@ boolean BytebeamArduino::publish(const char* topic, const char* payload) {
   }
 }
 
+boolean BytebeamArduino::subscribeToActions() {
+  int maxLen = 200;
+  char topic[maxLen] = { 0 };
+  int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
+
+  if(tempVar > maxLen) {
+    Serial.println("subscribe action topic size exceeded topic buffer size");
+    return false;
+  }
+
+  return subscribe(topic);
+}
+
+boolean BytebeamArduino::unsubscribeToActions() {
+  int maxLen = 200;
+  char topic[maxLen] = { 0 };
+  int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
+
+  if(tempVar > maxLen) {
+    Serial.println("unsubscribe action topic size exceeded topic buffer size");
+    return false;
+  }
+
+  return unsubscribe(topic);
+}
+
+boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercentage, char* status, char* error) {
+  static int sequence = 0;
+  const char* payload = "";
+  String actionStatusStr = "";
+  StaticJsonDocument<1024> doc;
+
+  sequence++;
+  long long milliseconds = getEpochTime() * 1000LL;
+
+  JsonArray actionStatusJsonArray = doc.to<JsonArray>();
+  JsonObject actionStatusJsonObj_1 = actionStatusJsonArray.createNestedObject();
+
+  actionStatusJsonObj_1["timestamp"] = milliseconds;
+  actionStatusJsonObj_1["sequence"]  = sequence;
+  actionStatusJsonObj_1["state"]     = status;
+  actionStatusJsonObj_1["errors"][0] = error;
+  actionStatusJsonObj_1["id"]        = actionId;
+  actionStatusJsonObj_1["progress"]  = progressPercentage;
+  
+  serializeJson(actionStatusJsonArray, actionStatusStr);
+  payload = actionStatusStr.c_str();
+
+  #if DEBUG_BYTEBEAM_ARDUINO
+    Serial.println(payload);
+  #endif
+
+  int maxLen = 300;
+  char topic[maxLen] = { 0 };
+  int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
+
+  if(tempVar > maxLen) {
+    Serial.println("action status topic size exceeded topic buffer size");
+    return false;
+  }
+  
+  return publish(topic, payload);
+}
+
+boolean BytebeamArduino::begin() {
+  if(!readDeviceConfigFile()) {
+    Serial.println("begin abort, error while reading the device config file...");
+    return false;
+  }
+            
+  if(!parseDeviceConfigFile()) {
+    Serial.println("begin abort, error while parsing the device config file...");
+    return false;
+  }
+
+  BytebeamOta.retrieveOTAInfo();
+
+  if(!BytebeamOta.otaUpdateFlag) {
+    Serial.println("RESTART: normal reboot !");
+  } else {
+    Serial.println("RESTART: reboot after successfull OTA update !");
+  }
+
+  if(!setupBytebeamClient()) {
+    Serial.println("error while connecting to server...");
+  } else {
+    Serial.println("bytebeam client connected successfully !"); 
+  }
+
+  if(BytebeamOta.otaUpdateFlag) {
+    if(!Bytebeam.publishActionCompleted(BytebeamOta.otaActionId)) {
+        Serial.println("failed to publish ota complete status...");
+    }
+    BytebeamOta.otaUpdateFlag = false;
+    strcpy(BytebeamOta.otaActionId, "");
+
+    BytebeamOta.clearOTAInfo();
+  }
+
+  if(!subscribeToActions()) {
+    Serial.println("error while subscribe to actions...");
+    return false;
+  }
+
+  return true;
+}
+
+boolean BytebeamArduino::loop() {
+  Serial.println("I am BytebeamArduino::loop()");
+
+  if(!PubSubClient::connected()) {
+    Serial.println("bytebean client connection broken");
+
+    int tryCount = 0;
+    while(!PubSubClient::connected()) {
+      if(tryCount == BYTEBEAM_CONNECT_MAX_RETRIES) {
+        Serial.println("Maximum attempt limit reached, can't reconnect to the server...");
+        return false;
+      }
+     
+      tryCount++;
+      Serial.printf("Attempt : %d, trying to reconnect to the server...\n", tryCount);
+      if(setupBytebeamClient()) {
+        Serial.println("bytebeam client reconnected successfully !"); 
+      } else {
+        delay(1000);
+      }
+    }
+  }
+
+  return PubSubClient::loop();
+}
+
+boolean BytebeamArduino::connected() {
+  if(!PubSubClient::connected()) {
+    Serial.println("bytebeam client is not connected to the server !");
+    return false;
+  } else {
+    Serial.println("bytebeam client is connected to the server !");
+    return true;
+  }
+}
+
 boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   StaticJsonDocument<1024> actionReceivedJson;
   DeserializationError err = deserializeJson(actionReceivedJson, actionReceivedStr);
@@ -278,15 +387,15 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   #endif
 
   int actionIterator = 0;
-  while(actionFuncs[actionIterator].name) {
-    if (!strcmp(actionFuncs[actionIterator].name, name)) {
-        actionFuncs[actionIterator].func((char*)payload, (char*)id);
+  while(this->actionFuncs[actionIterator].name) {
+    if (!strcmp(this->actionFuncs[actionIterator].name, name)) {
+        this->actionFuncs[actionIterator].func((char*)payload, (char*)id);
         break;
     }
     actionIterator++;
   }
 
-  if(actionFuncs[actionIterator].name == NULL) {
+  if(this->actionFuncs[actionIterator].name == NULL) {
     Serial.printf("invalid action : %s\n", name);
   }
 
@@ -347,44 +456,6 @@ boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPerce
   }
 }
 
-boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercentage, char* status, char* error) {
-  static int sequence = 0;
-  const char* payload = "";
-  String actionStatusStr = "";
-  StaticJsonDocument<1024> doc;
-
-  sequence++;
-  long long milliseconds = getEpochTime() * 1000LL;
-
-  JsonArray actionStatusJsonArray = doc.to<JsonArray>();
-  JsonObject actionStatusJsonObj_1 = actionStatusJsonArray.createNestedObject();
-
-  actionStatusJsonObj_1["timestamp"] = milliseconds;
-  actionStatusJsonObj_1["sequence"]  = sequence;
-  actionStatusJsonObj_1["state"]     = status;
-  actionStatusJsonObj_1["errors"][0] = error;
-  actionStatusJsonObj_1["id"]        = actionId;
-  actionStatusJsonObj_1["progress"]  = progressPercentage;
-  
-  serializeJson(actionStatusJsonArray, actionStatusStr);
-  payload = actionStatusStr.c_str();
-
-  #if DEBUG_BYTEBEAM_ARDUINO
-    Serial.println(payload);
-  #endif
-
-  int maxLen = 300;
-  char topic[maxLen] = { 0 };
-  int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
-
-  if(tempVar > maxLen) {
-    Serial.println("action status topic size exceeded topic buffer size");
-    return false;
-  }
-  
-  return publish(topic, payload);
-}
-
 boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) {
   int maxLen = 200;
   char topic[maxLen] = { 0 };
@@ -398,7 +469,24 @@ boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) 
   return publish(topic, payload);
 }
 
+boolean BytebeamArduino::handleOTA() {
+  BytebeamOta.secureOtaClient.setCACert(this->caCertPem);
+  BytebeamOta.secureOtaClient.setCertificate(this->clientCertPem); 
+  BytebeamOta.secureOtaClient.setPrivateKey(this->clientKeyPem);
+
+  return Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware");
+}
+
 void BytebeamArduino::end() {
+  this->mqttPort = -1;
+  this->mqttBrokerUrl = NULL;
+  this->deviceId = NULL;
+  this->projectId = NULL;
+  this->caCertPem = NULL;
+  this->clientCertPem = NULL;
+  this->clientKeyPem = NULL;
+  
+  initActionHandlerArray();
   PubSubClient::disconnect();
   Serial.println("bytebeam client disconnected successfully !");
 }
