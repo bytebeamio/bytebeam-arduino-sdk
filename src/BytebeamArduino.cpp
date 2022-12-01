@@ -50,6 +50,7 @@ BytebeamArduino::BytebeamArduino() {
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
 
+  this->actionFuncsHandlerIdx = -1;
   initActionHandlerArray();
 }
 
@@ -402,19 +403,84 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   return true;
 }
 
-boolean BytebeamArduino::addActionHandler(int (*func_ptr)(char* args, char* actionId), char* func_name) {
-  static int functionHandlerIndex = 0;
-  if (functionHandlerIndex >= BYTEBEAM_NUMBER_OF_ACTIONS) {
-    Serial.println("creation of new action handler failed...");
+boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
+  if (this->actionFuncsHandlerIdx + 1 >= BYTEBEAM_NUMBER_OF_ACTIONS) {
+    Serial.println("maximum actions limit reached, can't create new action at the moment");
     return false;
   }
 
-  this->actionFuncs[functionHandlerIndex].func = func_ptr;
-  this->actionFuncs[functionHandlerIndex].name = func_name;
+  int actionIterator = 0;
+  for (actionIterator = 0; actionIterator <= this->actionFuncsHandlerIdx; actionIterator++) {
+    if (!strcmp(this->actionFuncs[actionIterator].name, actionName)) {
+        Serial.printf("action : %s is already there at index %d, update the action instead\n", actionName, actionIterator);
+        return false;
+    }
+  }
 
-  functionHandlerIndex = functionHandlerIndex + 1;
+  this->actionFuncsHandlerIdx += 1;
+  this->actionFuncs[this->actionFuncsHandlerIdx].func = funcPtr;
+  this->actionFuncs[this->actionFuncsHandlerIdx].name = actionName;
 
   return true;
+}
+
+boolean BytebeamArduino::removeActionHandler(char* actionName) {
+  int actionIterator = 0;
+  int targetActionIdx = -1;
+
+  for (actionIterator = 0; actionIterator <= this->actionFuncsHandlerIdx; actionIterator++) {
+    if (!strcmp(this->actionFuncs[actionIterator].name, actionName)) {
+        targetActionIdx = actionIterator;
+    }
+  }
+
+  if(targetActionIdx == -1) {
+    Serial.printf("action : %s not found \n", actionName);
+    return false;
+  } else {
+    for(actionIterator = targetActionIdx; actionIterator != this->actionFuncsHandlerIdx; actionIterator++) {
+      this->actionFuncs[actionIterator].func = this->actionFuncs[actionIterator+1].func;
+      this->actionFuncs[actionIterator].name = this->actionFuncs[actionIterator+1].name;
+    }
+
+    this->actionFuncs[this->actionFuncsHandlerIdx].func = NULL;
+    this->actionFuncs[this->actionFuncsHandlerIdx].name = NULL;
+    this->actionFuncsHandlerIdx -= 1;
+    return true;
+  }
+}
+
+boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName) {
+  int actionIterator = 0;
+  int targetActionIdx = -1;
+
+  for (actionIterator = 0; actionIterator <= this->actionFuncsHandlerIdx; actionIterator++) {
+    if (!strcmp(this->actionFuncs[actionIterator].name, actionName)) {
+        targetActionIdx = actionIterator;
+    }
+  }
+
+  if(targetActionIdx == -1) {
+    Serial.printf("action : %s not found\n", actionName);
+    return false;
+  } else {
+    this->actionFuncs[targetActionIdx].func = newFuncPtr;
+    return true;
+  }
+}
+
+void BytebeamArduino::printActionHandlerArray() {
+  int actionIterator = 0;
+
+  Serial.println("["); 
+  for(actionIterator = 0; actionIterator < BYTEBEAM_NUMBER_OF_ACTIONS; actionIterator++) {
+    if(this->actionFuncs[actionIterator].name != NULL) {
+      Serial.printf("       { %s : %s }        \n", this->actionFuncs[actionIterator].name, "*******");
+    } else {
+      Serial.printf("       { %s : %s }        \n", "NULL", "NULL");
+    }
+  }
+  Serial.println("]"); 
 }
 
 boolean BytebeamArduino::publishActionCompleted(char* actionId) {
@@ -485,8 +551,10 @@ void BytebeamArduino::end() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
-  
+
+  this->actionFuncsHandlerIdx = -1;
   initActionHandlerArray();
+
   PubSubClient::disconnect();
   Serial.println("bytebeam client disconnected successfully !");
 }

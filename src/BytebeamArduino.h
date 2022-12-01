@@ -47,7 +47,10 @@ public:
     boolean loop();
     boolean connected();
     boolean handleActions(char* actionReceivedStr);
-    boolean addActionHandler(int (*func_ptr)(char* args, char* actionId), char* func_name);
+    boolean addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
+    boolean removeActionHandler(char* actionName);
+    boolean updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
+    void printActionHandlerArray();
     boolean publishActionCompleted(char* actionId);
     boolean publishActionFailed(char* actionId);
     boolean publishActionProgress(char* actionId, int progressPercentage);
@@ -77,6 +80,7 @@ private:
     const char* clientCertPem;
     const char* clientKeyPem;
     WiFiClientSecure secureClient;
+    int actionFuncsHandlerIdx;
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
     char deviceConfigStr[DEVICE_CONFIG_STR_LENGTH];
     StaticJsonDocument<DEVICE_CONFIG_STR_LENGTH> deviceConfigJson;
