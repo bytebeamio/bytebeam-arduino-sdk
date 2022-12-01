@@ -1,16 +1,20 @@
-#include "FS.h"
 #include "SPIFFS.h"
 
 #define SPIFFS_BASE_PATH "/spiffs"
 #define FORMAT_SPIFFS_IF_FAILED true
-#define FORMAT_SPIFSS_IN_BEGINNING true  // set the macro to format the spiffs in the beginnig (use this for first time)
 
-#define DEVICE_CONFIG_STR_LENGTH 8192  // maximum size of json object in bytes
+/* This macro is used to format the spiffs in the beginnig i.e reset if sppiffs format is not required */
+#define FORMAT_SPIFSS_IN_BEGINNING true  
 
-#define PRINT_BUFFERS_TO_SERIAL false  // set the macro to see the buffers in console (use this for debugging)
+/* This macro is used to specify the maximum size of device config json in bytes that need to be handled for particular device */
+#define DEVICE_CONFIG_STR_LENGTH 8192 
+
+/* This macro is used to print the device config read/write buffers to serial monitor i.e set to debug any issue */
+#define PRINT_BUFFERS_TO_SERIAL false  
 
 char deviceConfigReadStr[DEVICE_CONFIG_STR_LENGTH] = "";
-char deviceConfigWriteStr[DEVICE_CONFIG_STR_LENGTH] = R"({
+char deviceConfigWriteStr[DEVICE_CONFIG_STR_LENGTH] = R"(
+{
     "project_id": "espbytebeamsdktest",
     "broker": "cloud.bytebeam.io",
     "port": 8883,
@@ -93,9 +97,10 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-
   Serial.println();
-  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH)) {  // initalize the spiffs file system
+
+  /* initalize the spiffs file system */
+  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH)) {  
     Serial.println("spiffs mount failed");
   } else {
     Serial.println("spiffs mount success");
@@ -114,16 +119,18 @@ void setup() {
   readFile(SPIFFS, "/device_config.json", deviceConfigReadStr);    //  read the device configuration string from spiffs
 
 #if PRINT_BUFFERS_TO_SERIAL
+  Serial.println();
   Serial.println("deviceConfigWriteStr : ");
   Serial.println(deviceConfigWriteStr);
   Serial.println("deviceConfigReadStr : ");
   Serial.println(deviceConfigReadStr);
 #endif
 
-  if (!memcmp(deviceConfigReadStr, deviceConfigWriteStr, DEVICE_CONFIG_STR_LENGTH)) {  // verify the write process and log the result
-    Serial.println("device provisioning success");
+  /* verify the write process and log the result */
+  if (!memcmp(deviceConfigReadStr, deviceConfigWriteStr, DEVICE_CONFIG_STR_LENGTH)) {  
+    Serial.println("device provisioning success !");
   } else {
-    Serial.println("device provisioning failed");
+    Serial.println("device provisioning failed !");
   }
 }
 
