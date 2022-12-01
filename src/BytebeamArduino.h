@@ -55,7 +55,7 @@ public:
     boolean publishActionFailed(char* actionId);
     boolean publishActionProgress(char* actionId, int progressPercentage);
     boolean publishToStream(char* streamName, const char* payload);
-    boolean handleOTA();
+    boolean disableOTA();
     void end();
     
 private:
@@ -70,6 +70,7 @@ private:
     boolean subscribeToActions();
     boolean unsubscribeToActions();
     boolean publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
+    boolean handleOTA();
 
     // private variables
     int mqttPort;

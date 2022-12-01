@@ -310,6 +310,11 @@ boolean BytebeamArduino::begin() {
     return false;
   }
 
+  if(!handleOTA()) {
+    Serial.println("error while handling OTA...");
+    return false;
+  }
+
   return true;
 }
 
@@ -541,6 +546,16 @@ boolean BytebeamArduino::handleOTA() {
   BytebeamOta.secureOtaClient.setPrivateKey(this->clientKeyPem);
 
   return Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware");
+}
+
+boolean BytebeamArduino::disableOTA() {
+  if(!removeActionHandler("update_firmware")) {
+    Serial.println("OTA disable fail !");
+    return false;
+  } else {
+    Serial.println("OTA disable success !");
+    return true;
+  }
 }
 
 void BytebeamArduino::end() {

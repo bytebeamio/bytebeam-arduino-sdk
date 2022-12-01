@@ -52,8 +52,11 @@ void setup() {
   syncTimeFromNtp();
   
   Bytebeam.begin();
-  Bytebeam.handleOTA();
-  Serial.printf("Current Firmware Version : %s", fwVersion);
+
+  // disable OTA updates for your device
+  // Bytebeam.disableOTA();
+
+  Serial.printf("Current Firmware Version : %s\n", fwVersion);
 }
 
 void loop() {
