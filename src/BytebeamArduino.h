@@ -1,13 +1,12 @@
 #ifndef BYTEBEAM_ARDUINO_H
 #define BYTEBEAM_ARDUINO_H
 
-#include <time.h>
-#include <SPIFFS.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <time.h>
+#include <SPIFFS.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
-#include "BytebeamOTA.h"
 
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_ARDUINO false
@@ -15,11 +14,14 @@
 /* This macro is used to specify the maximum size of device config json in bytes that need to be handled for particular device */
 #define DEVICE_CONFIG_STR_LENGTH 8192
 
-/* This macro is used to specify the maximum number of actions that need to be handled for particular device */
+/* This macro is used to specify the maximum number of attempts we will perform to reconnect to the server in case the client got disconnect */
 #define BYTEBEAM_CONNECT_MAX_RETRIES 5
 
 /* This macro is used to specify the maximum number of actions that need to be handled for particular device */
 #define BYTEBEAM_NUMBER_OF_ACTIONS 10 
+
+/* This macro is used to enable the OTA i.e disable this flag to completely remove OTA from compilation phase thereby saving flash size too */
+#define BYTEBEAM_OTA_ENABLE true
 
 /**
  * @struct actionFunctionsHandler
@@ -51,26 +53,32 @@ public:
     boolean removeActionHandler(char* actionName);
     boolean updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
     void printActionHandlerArray();
+    void resetActionHandlerArray();
     boolean publishActionCompleted(char* actionId);
     boolean publishActionFailed(char* actionId);
     boolean publishActionProgress(char* actionId, int progressPercentage);
     boolean publishToStream(char* streamName, const char* payload);
-    boolean disableOTA();
     void end();
+
+    #if BYTEBEAM_OTA_ENABLE
+        boolean disableOTA();
+    #endif
     
 private:
     // private functions 
-    void initActionHandlerArray();
-    boolean readDeviceConfigFile();
-    boolean parseDeviceConfigFile();
-    boolean setupBytebeamClient();
     boolean subscribe(const char* topic);
     boolean unsubscribe(const char* topic);
     boolean publish(const char* topic, const char* payload);
     boolean subscribeToActions();
     boolean unsubscribeToActions();
     boolean publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
-    boolean handleOTA();
+    boolean readDeviceConfigFile();
+    boolean parseDeviceConfigFile();
+    boolean setupBytebeamClient();
+
+    #if BYTEBEAM_OTA_ENABLE
+        boolean handleOTA();
+    #endif
 
     // private variables
     int mqttPort;
@@ -85,6 +93,8 @@ private:
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
     char deviceConfigStr[DEVICE_CONFIG_STR_LENGTH];
     StaticJsonDocument<DEVICE_CONFIG_STR_LENGTH> deviceConfigJson;
+    bool isClientActive;
+   
 };
 
 extern BytebeamArduino Bytebeam;

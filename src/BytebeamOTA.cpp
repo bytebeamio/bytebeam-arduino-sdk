@@ -102,7 +102,7 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
   Serial.println("Obtaining ota variables");
   
   uint32_t length     = otaPayloadJson["content-length"];
-  boolean status      = otaPayloadJson["status"];
+  bool status         = otaPayloadJson["status"];
   const char* url     = otaPayloadJson["url"];
   const char* version = otaPayloadJson["version"];
   
@@ -118,7 +118,14 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
     }
   }
   Serial.println("- obtain ota variables");
-  
+
+#if DEBUG_BYTEBEAM_OTA
+  Serial.println(length);
+  Serial.println(status);
+  Serial.println(url);
+  Serial.println(version);
+#endif
+
   int maxLen = 200;
   int tempVar = snprintf(urlStringReturn, maxLen,  "%s", url);
 
@@ -137,9 +144,11 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   this->otaUpdateFlag = true;
   strcpy(this->otaActionId, actionId);
 
-  httpUpdate.setLedPin(LED_BUILTIN, LOW); 
+  /* set the status led pin and disable the auto reboot, we will manually reboot after saving some information */
   httpUpdate.rebootOnUpdate(false);
+  httpUpdate.setLedPin(BYTEBEAM_OTA_LED, LOW); 
 
+  /* set the update callbacks */
   httpUpdate.onStart(HTTPUpdateStarted);
   httpUpdate.onEnd(HTTPUpdateFinished);
   httpUpdate.onProgress(HTTPUpdateProgress);
@@ -149,6 +158,8 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
+
+      /* If update failed then we will reach here, just log the error and send failure message to the server */
       Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
       if(!Bytebeam.publishActionFailed(this->otaActionId)) {
         Serial.println("failed to publish negative response for firmware upgarde failure...");
@@ -161,6 +172,8 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
 
     case HTTP_UPDATE_OK:
       Serial.println("HTTP_UPDATE_OK");
+
+      /* If update is successfull then we will reach here, just save the OTA information and reboot the chip */
       saveOTAInfo();
       rebootEspWithReason();
       break;
