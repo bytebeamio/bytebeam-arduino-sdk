@@ -2,7 +2,6 @@
 #include <WiFi.h>
 #include <BytebeamArduino.h>
 
-
 // wifi credentials
 const char* WIFI_SSID     = "Mayank";
 const char* WIFI_PASSWORD = "mayank_777";
@@ -12,8 +11,14 @@ const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
-// function to get the time
-unsigned long getTime() {
+// function to get the time 
+unsigned long long getEpochTime() {
+  const long  gmtOffset_sec = 19800;
+  const int   daylightOffset_sec = 3600;
+  const char* ntpServer = "pool.ntp.org";
+
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); 
+  
   time_t now;
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
@@ -21,7 +26,9 @@ unsigned long getTime() {
     return(0);
   }
   time(&now);
-  return now;
+  
+  unsigned long long time = ((unsigned long long)now * 1000) + (millis() % 1000);
+  return time;
 }
 
 // function to setup the wifi with predefined credentials
@@ -61,8 +68,10 @@ void publishToDeviceShadow() {
   String deviceShadowStr = "";
   StaticJsonDocument<1024> doc;
 
+  char deviceShadowStream[] = "device_shadow";
+
   sequence++;
-  long long milliseconds = getTime() * 1000LL;
+  unsigned long long milliseconds = getEpochTime();
 
   JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
   JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
@@ -73,9 +82,9 @@ void publishToDeviceShadow() {
   
   serializeJson(deviceShadowJsonArray, deviceShadowStr);
   payload = deviceShadowStr.c_str();
-  Serial.printf("publishing %s to device shadow\n", payload);
+  Serial.printf("publishing %s to %s\n", payload, deviceShadowStream);
 
-  Bytebeam.publishToStream("device_shadow", payload);
+  Bytebeam.publishToStream(deviceShadowStream, payload);
 }
 
 void setup() {
