@@ -275,7 +275,6 @@ BytebeamArduino::BytebeamArduino() {
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
 
-  this->actionFuncsHandlerIdx = -1;
   resetActionHandlerArray();
 
   isClientActive = false;
@@ -581,6 +580,8 @@ void BytebeamArduino::resetActionHandlerArray() {
     this->actionFuncs[loopVar].func = NULL;
     this->actionFuncs[loopVar].name = NULL;
   }
+
+  this->actionFuncsHandlerIdx = -1;
 }
 
 boolean BytebeamArduino::publishActionCompleted(char* actionId) {
@@ -689,7 +690,6 @@ void BytebeamArduino::end() {
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
 
-  this->actionFuncsHandlerIdx = -1;
   resetActionHandlerArray();
 
   isClientActive = false;
