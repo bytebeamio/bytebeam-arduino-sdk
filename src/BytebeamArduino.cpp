@@ -172,18 +172,35 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 }
 
 boolean BytebeamArduino::readDeviceConfigFile() {
-  if (!SPIFFS.begin(true, "/spiffs")) {
-    Serial.println("spiffs mount failed");
-    return false;
+  fs::FS* ptrToFS = NULL;
+  
+  if(DEVICE_CONFIG_FILE_SYSTEM == FATFS_FILE_SYSTEM) {
+    Serial.println("fatfs file system detected !");
+    if(!FFat.begin()) {
+      Serial.println("fatfs mount failed");
+      return false;
+    } else {
+      ptrToFS = &FFat;
+      Serial.println("fatfs mount success");
+    }
+  } else if(DEVICE_CONFIG_FILE_SYSTEM == SPIFFS_FILE_SYSTEM) {
+    Serial.println("spiffs file system detected !");
+    if(!SPIFFS.begin()) {
+      Serial.println("spiffs mount failed");
+      return false;
+    } else {
+      ptrToFS = &SPIFFS;
+      Serial.println("spiffs mount success");
+    }
   } else {
-    Serial.println("spiffs mount success");
+    Serial.println("unknown file system detected !");
+    return false;
   }
 
-  const char * path = "/device_config.json";
+  const char* path = DEVICE_CONFIG_FILE_NAME;
   Serial.printf("Reading file : %s\n", path);
 
-  fs::FS &fs = SPIFFS;
-  File file = fs.open(path, FILE_READ);
+  File file = ptrToFS->open(path, FILE_READ);
   if (!file || file.isDirectory()) {
     Serial.println("- failed to open file for reading");
     return false;
@@ -199,7 +216,14 @@ boolean BytebeamArduino::readDeviceConfigFile() {
   }
 
   file.close();
-  SPIFFS.end();
+
+  if(DEVICE_CONFIG_FILE_SYSTEM == FATFS_FILE_SYSTEM) {
+    FFat.end();
+  } else if(DEVICE_CONFIG_FILE_SYSTEM == SPIFFS_FILE_SYSTEM) {
+    SPIFFS.end();
+  } else {
+    Serial.println("unknown file system");
+  }
 
 #if DEBUG_BYTEBEAM_ARDUINO
   Serial.println("deviceConfigStr :");

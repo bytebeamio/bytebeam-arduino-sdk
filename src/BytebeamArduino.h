@@ -4,12 +4,33 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <FS.h>
+#include <FFat.h>
 #include <SPIFFS.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
 
+/**
+ * @enum deviceConfigFileSystem
+ * This sturct contains name and function pointer for particular action 
+ * @var deviceConfigFileSystem::FATFS_FILE_SYSTEM
+ * Use FATFS file system for provisioning the device
+ * @var deviceConfigFileSystem::SPIFFS_FILE_SYSTEM
+ * Use SPIFFS file system for provisioning the device
+ */
+typedef enum {
+    FATFS_FILE_SYSTEM,
+    SPIFFS_FILE_SYSTEM
+} deviceConfigFileSystem;
+
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_ARDUINO false
+
+/* This macro is used to specify the file system used for provisioning the device */
+#define DEVICE_CONFIG_FILE_SYSTEM SPIFFS_FILE_SYSTEM
+
+/* This macro is used to specify the name of the device config file */
+#define DEVICE_CONFIG_FILE_NAME "/device_config.json"
 
 /* This macro is used to specify the maximum size of device config json in bytes that need to be handled for particular device */
 #define DEVICE_CONFIG_STR_LENGTH 8192
@@ -94,7 +115,6 @@ private:
     char deviceConfigStr[DEVICE_CONFIG_STR_LENGTH];
     StaticJsonDocument<DEVICE_CONFIG_STR_LENGTH> deviceConfigJson;
     bool isClientActive;
-   
 };
 
 extern BytebeamArduino Bytebeam;

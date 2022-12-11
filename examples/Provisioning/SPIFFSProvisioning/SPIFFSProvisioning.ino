@@ -1,10 +1,17 @@
+#include "FS.h"
 #include "SPIFFS.h"
 
+/* This macro is used to specify the base path of the spiffs partiiton */
 #define SPIFFS_BASE_PATH "/spiffs"
+
+/* This macro is used to format the spiffs if in case the spiffs initialization fails i.e reset if not required */
 #define FORMAT_SPIFFS_IF_FAILED true
 
-/* This macro is used to format the spiffs in the beginnig i.e reset if sppiffs format is not required */
+/* This macro is used to format the spiffs in the beginnig i.e reset if not required */
 #define FORMAT_SPIFSS_IN_BEGINNING true  
+
+/* This macro is used to specify the name of the device config file */
+#define DEVICE_CONFIG_FILE_NAME "/device_config.json"
 
 /* This macro is used to specify the maximum size of device config json in bytes that need to be handled for particular device */
 #define DEVICE_CONFIG_STR_LENGTH 8192 
@@ -99,24 +106,29 @@ void setup() {
   Serial.begin(9600);
   Serial.println();
 
-  /* initalize the spiffs file system */
-  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH)) {  
-    Serial.println("spiffs mount failed");
-  } else {
-    Serial.println("spiffs mount success");
-  }
-
 #if FORMAT_SPIFSS_IN_BEGINNING
   if (!SPIFFS.format()) {
     Serial.println("spiffs format failed");
+    return;
   } else {
     Serial.println("spiffs format success");
   }
 #endif
 
-  listDir(SPIFFS, "/", 0);                                         //  list the directories in the spiffs
-  writeFile(SPIFFS, "/device_config.json", deviceConfigWriteStr);  //  write the device configuration string to spiffs
-  readFile(SPIFFS, "/device_config.json", deviceConfigReadStr);    //  read the device configuration string from spiffs
+  // initalize the spiffs file system 
+  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH)) {  
+    Serial.println("spiffs mount failed");
+    return;
+  } else {
+    Serial.println("spiffs mount success");
+  }
+
+  listDir(SPIFFS, "/", 0);                                           //  list the directories in the spiffs
+  writeFile(SPIFFS, DEVICE_CONFIG_FILE_NAME, deviceConfigWriteStr);  //  write the device configuration string to spiffs
+  readFile(SPIFFS, DEVICE_CONFIG_FILE_NAME, deviceConfigReadStr);    //  read the device configuration string from spiffs
+
+  // de-initalize the spiffs file system 
+  SPIFFS.end();
 
 #if PRINT_BUFFERS_TO_SERIAL
   Serial.println();
@@ -126,7 +138,7 @@ void setup() {
   Serial.println(deviceConfigReadStr);
 #endif
 
-  /* verify the write process and log the result */
+  // verify the write process and log the result
   if (!memcmp(deviceConfigReadStr, deviceConfigWriteStr, DEVICE_CONFIG_STR_LENGTH)) {  
     Serial.println("device provisioning success !");
   } else {
@@ -136,4 +148,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // nothing to do here
 }
