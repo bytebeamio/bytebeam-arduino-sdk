@@ -455,12 +455,12 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   }
   
   Serial.println("Obtaining action variables");
-  
+
   const char* name     = actionReceivedJson["name"];
   const char* id       = actionReceivedJson["id"];
   const char* payload  = actionReceivedJson["payload"];
   const char* kind     = actionReceivedJson["kind"];
-  
+
   const char* argsName[] = {"name", "id", "payload", "kind"};
   const char* argsStr[] = {name, id, payload, kind};
   int numArg = sizeof(argsStr)/sizeof(argsStr[0]);
@@ -481,10 +481,59 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   Serial.println(kind);
 #endif
 
+  //
+  // Above way of extracting json will give the pointers to the json itself, So If you want to use the parameter 
+  // beyond the scope of this function then you must create a copy of it and then pass it. i.e (id and payload)
+  //
+
+  int strSize = 0;
+  int tempVar = 0;
+
+  strSize = snprintf(NULL, 0, id) + 1;
+  if(strSize <= 0) {
+    Serial.println("failed to get action id size");
+    return false;
+  }
+
+  char* idStr = (char*) malloc(strSize);
+  if(idStr == NULL) {
+    Serial.println("failed to allocate the memory for action id");
+    return false;
+  }
+
+  tempVar = snprintf(idStr, strSize, id);
+  if(tempVar >= strSize) {
+    Serial.println("failed to get action id");
+    return false;
+  }
+
+  strSize = snprintf(NULL, 0, payload) + 1;
+  if(strSize <= 0) {
+    Serial.println("failed to get payload size");
+    return false;
+  }
+
+  char* payloadStr = (char*) malloc(strSize);
+  if(payloadStr == NULL) {
+    Serial.println("failed to allocate the memory for payload");
+    return false;
+  }
+
+  tempVar = snprintf(payloadStr, strSize, payload);
+  if(tempVar >= strSize) {
+    Serial.println("failed to get payload");
+    return false;
+  }
+
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(idStr);
+  Serial.println(payloadStr);
+#endif
+
   int actionIterator = 0;
   while(this->actionFuncs[actionIterator].name) {
     if (!strcmp(this->actionFuncs[actionIterator].name, name)) {
-        this->actionFuncs[actionIterator].func((char*)payload, (char*)id);
+        this->actionFuncs[actionIterator].func(payloadStr, idStr);
         break;
     }
     actionIterator++;
@@ -493,6 +542,10 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   if(this->actionFuncs[actionIterator].name == NULL) {
     Serial.printf("invalid action : %s\n", name);
   }
+
+  // free the allocated memory :)
+  free(idStr);
+  free(payloadStr);
 
   handleActionFlag = false;
   return true;
@@ -619,14 +672,11 @@ boolean BytebeamArduino::publishActionCompleted(char* actionId) {
     return false;
   }
 
-  char tempActionId[20];
-  strcpy(tempActionId, actionId);
-
-  if(!publishActionStatus(tempActionId, 100, "Completed", "No Error")) {
-    Serial.printf("publish action completed response failed, action_id : %s\n", tempActionId);
+  if(!publishActionStatus(actionId, 100, "Completed", "No Error")) {
+    Serial.printf("publish action completed response failed, action_id : %s\n", actionId);
     return false;
   } else {
-    Serial.printf("publish action completed response success, action_id : %s\n", tempActionId);
+    Serial.printf("publish action completed response success, action_id : %s\n", actionId);
     return true;
   }
 }
@@ -642,14 +692,11 @@ boolean BytebeamArduino::publishActionFailed(char* actionId) {
     return false;
   }
 
-  char tempActionId[20];
-  strcpy(tempActionId, actionId);
-
-  if(!publishActionStatus(tempActionId, 0, "Failed", "Action Failed")) {
-    Serial.printf("publish action failed response failed, action_id : %s\n", tempActionId);
+  if(!publishActionStatus(actionId, 0, "Failed", "Action Failed")) {
+    Serial.printf("publish action failed response failed, action_id : %s\n", actionId);
     return false;
   } else {
-    Serial.printf("publish action failed response success, action_id : %s\n", tempActionId);
+    Serial.printf("publish action failed response success, action_id : %s\n", actionId);
     return true;
   }
 }
@@ -665,14 +712,11 @@ boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPerce
     return false;
   }
 
-  char tempActionId[20];
-  strcpy(tempActionId, actionId);
-
-  if(!publishActionStatus(tempActionId, progressPercentage, "Progress", "No Error")) {
-    Serial.printf("publish action progress response failed, action_id : %s\n", tempActionId);
+  if(!publishActionStatus(actionId, progressPercentage, "Progress", "No Error")) {
+    Serial.printf("publish action progress response failed, action_id : %s\n", actionId);
     return false;
   } else {
-    Serial.printf("publish action progress response success, action_id : %s\n", tempActionId);
+    Serial.printf("publish action progress response success, action_id : %s\n", actionId);
     return true;
   }
 }
