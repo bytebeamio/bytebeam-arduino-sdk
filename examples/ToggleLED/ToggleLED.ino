@@ -17,20 +17,64 @@ const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
-// function for ToggleLED action
-int toggleLed(char* args, char* actionId) {
-  Serial.printf("*** args : %s , actionId : %s ***\n", args, actionId);
+// function to get the time 
+unsigned long long getEpochTime() {
+  const long  gmtOffset_sec = 19800;
+  const int   daylightOffset_sec = 3600;
+  const char* ntpServer = "pool.ntp.org";
 
-  ledState = !ledState;
-  digitalWrite(BOARD_LED, ledState);
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); 
+  
+  time_t now;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return(0);
+  }
+  time(&now);
+  
+  unsigned long long time = ((unsigned long long)now * 1000) + (millis() % 1000);
+  return time;
+}
 
-  Bytebeam.publishActionCompleted(actionId);
-  return 0;
+// function to publish payload to device shadow
+void publishToDeviceShadow() {
+  static int sequence = 0;
+  const char* payload = "";
+  String deviceShadowStr = "";
+  StaticJsonDocument<1024> doc;
+
+  char deviceShadowStream[] = "device_shadow";
+
+  sequence++;
+  unsigned long long milliseconds = getEpochTime();
+
+  char ledStatus[200] = "";
+  sprintf(ledStatus, "LED is %s !", ledState == true? "ON" : "OFF");
+
+  JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
+  JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
+
+  deviceShadowJsonObj_1["timestamp"] = milliseconds;
+  deviceShadowJsonObj_1["sequence"]  = sequence;
+  deviceShadowJsonObj_1["Status"]    = ledStatus;
+  
+  serializeJson(deviceShadowJsonArray, deviceShadowStr);
+  payload = deviceShadowStr.c_str();
+  Serial.printf("publishing %s to %s\n", payload, deviceShadowStream);
+
+  Bytebeam.publishToStream(deviceShadowStream, payload);
 }
 
 // function to setup the predefined led 
 void setupLED() {
   pinMode(BOARD_LED, OUTPUT);
+  digitalWrite(BOARD_LED, ledState);
+}
+
+// function to toggle the predefined led 
+void toggleLED() {
+  ledState = !ledState;
   digitalWrite(BOARD_LED, ledState);
 }
 
@@ -64,6 +108,23 @@ void syncTimeFromNtp() {
   Serial.println();
 }
 
+// handler for ToggleLED action
+int ToggleLED_Hanlder(char* args, char* actionId) {
+  Serial.println("ToggleLED Action Received !");
+  Serial.printf("<--- args : %s, actionId : %s --->\n", args, actionId);
+
+  // toggle the led
+  toggleLED();
+
+  // publish led state to device shadow
+  publishToDeviceShadow();
+
+  // publish action completed status
+  Bytebeam.publishActionCompleted(actionId);
+
+  return 0;
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -74,7 +135,7 @@ void setup() {
   syncTimeFromNtp();
   
   Bytebeam.begin();
-  Bytebeam.addActionHandler(toggleLed, "ToggleLED");
+  Bytebeam.addActionHandler(ToggleLED_Hanlder, "ToggleLED");
 }
 
 void loop() {
