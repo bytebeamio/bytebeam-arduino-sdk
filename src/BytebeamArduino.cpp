@@ -208,6 +208,19 @@ boolean BytebeamArduino::readDeviceConfigFile() {
 
   char chr = ' ';
   int strIndex = 0;
+  int strSize = 0;
+
+  strSize = file.size() + 1;
+  if(strSize <= 0) {
+    Serial.println("failed to get json file size");
+    return false;
+  }
+
+  this->deviceConfigStr = (char*) malloc(strSize);
+  if(deviceConfigStr == NULL) {
+    Serial.println("failed to allocate the memory for json file");
+    return false;
+  }
 
   Serial.println("- read from file");
   while (file.available()) {
@@ -234,7 +247,9 @@ boolean BytebeamArduino::readDeviceConfigFile() {
 }
 
 boolean BytebeamArduino::parseDeviceConfigFile() {
-  DeserializationError err = deserializeJson(this->deviceConfigJson, this->deviceConfigStr);
+  StaticJsonDocument<1024> deviceConfigJson;
+  DeserializationError err = deserializeJson(deviceConfigJson, this->deviceConfigStr);
+
   if(err) {
     Serial.printf("deserializeJson() failed : %s\n", err.c_str());
     return false;
@@ -244,13 +259,13 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   
   Serial.println("Obtaining device variables");
 
-  this->mqttPort      = this->deviceConfigJson["port"];
-  this->mqttBrokerUrl = this->deviceConfigJson["broker"];
-  this->deviceId      = this->deviceConfigJson["device_id"];
-  this->projectId     = this->deviceConfigJson["project_id"];
-  this->caCertPem     = this->deviceConfigJson["authentication"]["ca_certificate"];
-  this->clientCertPem = this->deviceConfigJson["authentication"]["device_certificate"];
-  this->clientKeyPem  = this->deviceConfigJson["authentication"]["device_private_key"];
+  this->mqttPort      = deviceConfigJson["port"];
+  this->mqttBrokerUrl = deviceConfigJson["broker"];
+  this->deviceId      = deviceConfigJson["device_id"];
+  this->projectId     = deviceConfigJson["project_id"];
+  this->caCertPem     = deviceConfigJson["authentication"]["ca_certificate"];
+  this->clientCertPem = deviceConfigJson["authentication"]["device_certificate"];
+  this->clientKeyPem  = deviceConfigJson["authentication"]["device_private_key"];
   
   const char* name[] = {"broker", "device_id", "project_id", "ca_certificate", "device_certificate", "device_private_key"};
   const char* args[] = {this->mqttBrokerUrl, this->deviceId, this->projectId, this->caCertPem, this->clientCertPem, this->clientKeyPem};
@@ -298,6 +313,9 @@ BytebeamArduino::BytebeamArduino() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
+
+  free(this->deviceConfigStr);
+  this->deviceConfigStr = NULL;
 
   resetActionHandlerArray();
 
@@ -751,6 +769,9 @@ void BytebeamArduino::end() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
+
+  free(this->deviceConfigStr);
+  this->deviceConfigStr = NULL;
 
   resetActionHandlerArray();
 

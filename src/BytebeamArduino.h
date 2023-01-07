@@ -110,8 +110,7 @@ private:
     WiFiClientSecure secureClient;
     int actionFuncsHandlerIdx;
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
-    char deviceConfigStr[DEVICE_CONFIG_STR_LENGTH];
-    StaticJsonDocument<DEVICE_CONFIG_STR_LENGTH> deviceConfigJson;
+    char* deviceConfigStr;
     bool isClientActive;
     bool isOTAEnable;
 };
