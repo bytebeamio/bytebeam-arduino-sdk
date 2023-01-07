@@ -79,11 +79,13 @@ public:
     boolean publishActionFailed(char* actionId);
     boolean publishActionProgress(char* actionId, int progressPercentage);
     boolean publishToStream(char* streamName, const char* payload);
-    void end();
-
+    
     #if BYTEBEAM_OTA_ENABLE
+        boolean enableOTA();
         boolean disableOTA();
     #endif
+
+    void end();
     
 private:
     // private functions 
@@ -96,10 +98,6 @@ private:
     boolean readDeviceConfigFile();
     boolean parseDeviceConfigFile();
     boolean setupBytebeamClient();
-
-    #if BYTEBEAM_OTA_ENABLE
-        boolean handleOTA();
-    #endif
 
     // private variables
     int mqttPort;
@@ -115,8 +113,9 @@ private:
     char deviceConfigStr[DEVICE_CONFIG_STR_LENGTH];
     StaticJsonDocument<DEVICE_CONFIG_STR_LENGTH> deviceConfigJson;
     bool isClientActive;
+    bool isOTAEnable;
 };
 
 extern BytebeamArduino Bytebeam;
 
-#endif /* BYTEBEAM_ARDUINO_H */ 
+#endif /* BYTEBEAM_ARDUINO_H */

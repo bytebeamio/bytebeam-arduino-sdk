@@ -302,6 +302,7 @@ BytebeamArduino::BytebeamArduino() {
   resetActionHandlerArray();
 
   isClientActive = false;
+  isOTAEnable = false;
 }
 
 BytebeamArduino::~BytebeamArduino() {
@@ -346,6 +347,8 @@ boolean BytebeamArduino::begin() {
 
     BytebeamOta.clearOTAInfo();
   }
+#else
+  Serial.println("Skipped Bytebeam OTA from compilation phase i.e saving flash size");
 #endif
 
   if(!subscribeToActions()) {
@@ -355,15 +358,6 @@ boolean BytebeamArduino::begin() {
 
   isClientActive = true;
   Serial.println("bytebeam client activated successfully !"); 
-
-#if BYTEBEAM_OTA_ENABLE
-  if(!handleOTA()) {
-    Serial.println("begin abort, error while handling OTA...");
-    return false;
-  }
-#else 
-  Serial.println("Skipped Bytebeam OTA from compilation phase i.e saving flash size");
-#endif
 
   return true;
 }
@@ -761,12 +755,14 @@ void BytebeamArduino::end() {
   resetActionHandlerArray();
 
   isClientActive = false;
+  isOTAEnable = false;
+
   PubSubClient::disconnect();
   Serial.println("bytebeam client deactivated successfully !");
 }
 
 #if BYTEBEAM_OTA_ENABLE
-  int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
+  static int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
     char constructedUrl[200] = { 0 };
 
     if(!BytebeamOta.parseOTAJson(otaPayloadStr, constructedUrl)) {
@@ -782,22 +778,51 @@ void BytebeamArduino::end() {
     return 0;
   }
 
-  boolean BytebeamArduino::handleOTA() {
+  boolean BytebeamArduino::enableOTA() {
+    if(!isClientActive) {
+      Serial.println("BytebeamArduino::enableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
+      return false;
+    }
+
     BytebeamOta.secureOtaClient.setCACert(this->caCertPem);
     BytebeamOta.secureOtaClient.setCertificate(this->clientCertPem); 
     BytebeamOta.secureOtaClient.setPrivateKey(this->clientKeyPem);
 
-    return Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware");
+    if(!Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware")) {
+      Serial.println("OTA enable fail !");
+      return false;
+    }
+
+    isOTAEnable = true;
+    Serial.println("OTA enable success !");
+
+    return true;
   }
 
   boolean BytebeamArduino::disableOTA() {
+    if(!isClientActive) {
+      Serial.println("BytebeamArduino::disableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
+      return false;
+    }
+
+    if(!isOTAEnable) {
+      Serial.println("BytebeamArduino::disableOTA() ---> OTA is not enabled yet, enable the OTA");
+      return false;
+    }
+
+    BytebeamOta.secureOtaClient.setCACert(NULL);
+    BytebeamOta.secureOtaClient.setCertificate(NULL);
+    BytebeamOta.secureOtaClient.setPrivateKey(NULL);
+
     if(!removeActionHandler("update_firmware")) {
       Serial.println("OTA disable fail !");
       return false;
-    } else {
-      Serial.println("OTA disable success !");
-      return true;
     }
+
+    isOTAEnable = false;
+    Serial.println("OTA disable success !");
+
+    return true;
   }
 #endif
 
