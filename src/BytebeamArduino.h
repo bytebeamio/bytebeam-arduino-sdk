@@ -5,10 +5,25 @@
 #include <ArduinoJson.h>
 #include <time.h>
 #include <FS.h>
-#include <FFat.h>
-#include <SPIFFS.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
+
+#if defined(ESP32) || defined(ARDUINO_ARCH_ESP32)
+    /* ESP32 architecture dependent includes */
+    #include <FFat.h>
+    #include <SPIFFS.h>
+
+    /* ESP32 architecture dependent defines */
+    #define BYTEBEAM_ARDUINO_ARCH_FS
+    #define BYTEBEAM_ARDUINO_ARCH_FATFS
+    #define BYTEBEAM_ARDUINO_ARCH_SPIFFS
+    #define BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+    #define BYTEBEAM_ARDUINO_ARCH_SD
+#endif
+
+#ifndef FILE_READ
+#define FILE_READ "r"
+#endif
 
 /**
  * @enum deviceConfigFileSystem
@@ -20,7 +35,9 @@
  */
 typedef enum {
     FATFS_FILE_SYSTEM,
-    SPIFFS_FILE_SYSTEM
+    SPIFFS_FILE_SYSTEM,
+    LITTLEFS_FILE_SYSTEM,
+    SD_FILE_SYSTEM
 } deviceConfigFileSystem;
 
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */

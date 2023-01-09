@@ -171,82 +171,182 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   return publish(topic, payload);
 }
 
-boolean BytebeamArduino::readDeviceConfigFile() {
-  fs::FS* ptrToFS = NULL;
+#ifdef BYTEBEAM_ARDUINO_ARCH_FS
+  boolean BytebeamArduino::readDeviceConfigFile() {
+
+    /* This file system pointer will store the address of the selected file system, So after begin and end operations
+     * we can utilize this file system pointer to do the file operations.
+     */
+    fs::FS* ptrToFS = NULL;
+
+    switch(DEVICE_CONFIG_FILE_SYSTEM) {
+
+    /* We need to do conditional compilation here beacuse different architecture supports different file systems
+     * So based on the architecture we should define the flags for the supported file system.
+     */
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
+      case FATFS_FILE_SYSTEM:
+        Serial.println("FATFS file system detected !");
+
+        // initalize the FATFS file system
+        if(!FFat.begin()) {
+          Serial.println("FATFS mount failed");
+          return false;
+        }
+
+        // set the file system pointer to FATFS Object
+        ptrToFS = &FFat;
+
+        break;
+  #endif
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SPIFFS
+      case SPIFFS_FILE_SYSTEM:
+        Serial.println("SPIFFS file system detected !");
+
+        // initalize the SPIFFS file system
+        if(!SPIFFS.begin()) {
+          Serial.println("SPIFFS mount failed");
+          return false;
+        }
+
+        // set the file system pointer to SPIFFS Object
+        ptrToFS = &SPIFFS;
+
+        break;
+  #endif
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+      case LITTLEFS_FILE_SYSTEM:
+        Serial.println("LITTLEFS file system detected !");
+
+        // Just print the log and return :)
+        Serial.println("LITTLEFS is not supported by the library yet");
+        return false;
+
+        break;
+  #endif
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SD
+      case SD_FILE_SYSTEM:
+        Serial.println("SD file system detected !");
+
+        // Just print the log and return :)
+        Serial.println("SD is not supported by the library yet");
+        return false;
+
+        break;
+  #endif
   
-  if(DEVICE_CONFIG_FILE_SYSTEM == FATFS_FILE_SYSTEM) {
-    Serial.println("fatfs file system detected !");
-    if(!FFat.begin()) {
-      Serial.println("fatfs mount failed");
-      return false;
-    } else {
-      ptrToFS = &FFat;
-      Serial.println("fatfs mount success");
+
+      default:
+        Serial.println("Unknown file system detected !");
+
+        // Just print the log and return :)
+        Serial.println("Make sure the architecture supports the selcted file system");
+        return false;
+
+        break;
     }
-  } else if(DEVICE_CONFIG_FILE_SYSTEM == SPIFFS_FILE_SYSTEM) {
-    Serial.println("spiffs file system detected !");
-    if(!SPIFFS.begin()) {
-      Serial.println("spiffs mount failed");
+
+    const char* path = DEVICE_CONFIG_FILE_NAME;
+    Serial.printf("Reading file : %s\n", path);
+
+    File file = ptrToFS->open(path, FILE_READ);
+    if (!file || file.isDirectory()) {
+      Serial.println("- failed to open file for reading");
       return false;
-    } else {
-      ptrToFS = &SPIFFS;
-      Serial.println("spiffs mount success");
     }
-  } else {
-    Serial.println("unknown file system detected !");
-    return false;
+
+    char chr = ' ';
+    int strIndex = 0;
+    int strSize = 0;
+
+    strSize = file.size() + 1;
+    if(strSize <= 0) {
+      Serial.println("failed to get json file size");
+      return false;
+    }
+
+    this->deviceConfigStr = (char*) malloc(strSize);
+    if(this->deviceConfigStr == NULL) {
+      Serial.println("failed to allocate the memory for json file");
+      return false;
+    }
+
+    Serial.println("- read from file");
+    while (file.available()) {
+      chr = file.read();
+      this->deviceConfigStr[strIndex++] = chr;
+    }
+
+    file.close();
+
+    switch(DEVICE_CONFIG_FILE_SYSTEM) {
+
+    /* We need to do conditional compilation here beacuse different architecture supports different file systems
+     * So based on the architecture we should define the flags for the supported file system.
+     */
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
+      case FATFS_FILE_SYSTEM:
+        // de-initalize the FATFS file system
+        FFat.end();
+
+        break;
+  #endif
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SPIFFS
+      case SPIFFS_FILE_SYSTEM:
+        // de-initalize the SPIFFS file system
+        SPIFFS.end();
+
+        break;
+  #endif
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+      case LITTLEFS_FILE_SYSTEM:
+        // de-initalize the LITTLEFS file system
+        // nothing to do here yet
+
+        break;
+  #endif
+
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SD
+      case SD_FILE_SYSTEM:
+        // de-initalize the SD file system
+        // nothing to do here yet
+
+        break;
+  #endif
+
+      default:
+        Serial.println("Unknown file system detected !");
+
+        // Just print the log and return :)
+        Serial.println("Make sure the architecture supports the selcted file system");
+        return false;
+
+        break;
+    }
+
+  #if DEBUG_BYTEBEAM_ARDUINO
+    Serial.println("deviceConfigStr :");
+    Serial.println(this->deviceConfigStr);
+  #endif
+
+    return true;
   }
-
-  const char* path = DEVICE_CONFIG_FILE_NAME;
-  Serial.printf("Reading file : %s\n", path);
-
-  File file = ptrToFS->open(path, FILE_READ);
-  if (!file || file.isDirectory()) {
-    Serial.println("- failed to open file for reading");
-    return false;
-  }
-
-  char chr = ' ';
-  int strIndex = 0;
-  int strSize = 0;
-
-  strSize = file.size() + 1;
-  if(strSize <= 0) {
-    Serial.println("failed to get json file size");
-    return false;
-  }
-
-  this->deviceConfigStr = (char*) malloc(strSize);
-  if(deviceConfigStr == NULL) {
-    Serial.println("failed to allocate the memory for json file");
-    return false;
-  }
-
-  Serial.println("- read from file");
-  while (file.available()) {
-    chr = file.read();
-    this->deviceConfigStr[strIndex++] = chr;
-  }
-
-  file.close();
-
-  if(DEVICE_CONFIG_FILE_SYSTEM == FATFS_FILE_SYSTEM) {
-    FFat.end();
-  } else if(DEVICE_CONFIG_FILE_SYSTEM == SPIFFS_FILE_SYSTEM) {
-    SPIFFS.end();
-  } else {
-    Serial.println("unknown file system");
-  }
-
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println("deviceConfigStr :");
-  Serial.println(this->deviceConfigStr);
 #endif
 
-  return true;
-}
-
 boolean BytebeamArduino::parseDeviceConfigFile() {
+  // Make sure you are parsing something
+  if(this->deviceConfigStr == NULL) {
+    Serial.println("device config file is empty");
+    return false;
+  }
+
   StaticJsonDocument<1024> deviceConfigJson;
   DeserializationError err = deserializeJson(deviceConfigJson, this->deviceConfigStr);
 
@@ -328,10 +428,14 @@ BytebeamArduino::~BytebeamArduino() {
 } 
 
 boolean BytebeamArduino::begin() {
+#ifdef BYTEBEAM_ARDUINO_ARCH_FS
   if(!readDeviceConfigFile()) {
     Serial.println("begin abort, error while reading the device config file...");
     return false;
   }
+#else
+  Serial.println("Architecture doesn't support file system");
+#endif
             
   if(!parseDeviceConfigFile()) {
     Serial.println("begin abort, error while parsing the device config file...");
