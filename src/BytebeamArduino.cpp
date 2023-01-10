@@ -395,6 +395,10 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
 }
 
 boolean BytebeamArduino::setupBytebeamClient() {
+
+  /* Setting up the bytebeam secure wifi client based on the architecture and before this make sure you have
+   * the same secure wifi client object inside the class defination.
+   */
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   this->secureClient.setCACert(this->caCertPem);
   this->secureClient.setCertificate(this->clientCertPem);
@@ -918,9 +922,11 @@ void BytebeamArduino::end() {
       return false;
     }
 
+  #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
     BytebeamOTA.secureOTAClient.setCACert(this->caCertPem);
     BytebeamOTA.secureOTAClient.setCertificate(this->clientCertPem);
     BytebeamOTA.secureOTAClient.setPrivateKey(this->clientKeyPem);
+  #endif
 
     if(!Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware")) {
       Serial.println("OTA enable fail !");
@@ -944,9 +950,11 @@ void BytebeamArduino::end() {
       return false;
     }
 
-    BytebeamOTA.secureOTAClient.setCACert(NULL);
-    BytebeamOTA.secureOTAClient.setCertificate(NULL);
-    BytebeamOTA.secureOTAClient.setPrivateKey(NULL);
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+      BytebeamOTA.secureOTAClient.setCACert(NULL);
+      BytebeamOTA.secureOTAClient.setCertificate(NULL);
+      BytebeamOTA.secureOTAClient.setPrivateKey(NULL);
+    #endif
 
     if(!removeActionHandler("update_firmware")) {
       Serial.println("OTA disable fail !");

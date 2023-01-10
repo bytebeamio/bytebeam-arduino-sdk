@@ -3,8 +3,6 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <HTTPUpdate.h>
-#include <Preferences.h>
 #include "BytebeamArduino.h"
 #include "BytebeamArchDefines.h"
 

@@ -2,6 +2,10 @@
 
 static char tempOtaActionId[OTA_ACTION_ID_STR_LEN] = "";
 
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  HTTPUpdate& BytebeamUpdate =  httpUpdate;
+#endif
+
 void HTTPUpdateStarted() {
   Serial.println("CALLBACK:  HTTP update process started");
 }
@@ -148,22 +152,22 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   strcpy(tempOtaActionId, actionId);
 
   /* set the status led pin and disable the auto reboot, we will manually reboot after saving some information */
-  httpUpdate.rebootOnUpdate(false);
-  httpUpdate.setLedPin(BYTEBEAM_OTA_LED, LOW); 
+  BytebeamUpdate.rebootOnUpdate(false);
+  BytebeamUpdate.setLedPin(BYTEBEAM_OTA_LED, LOW);
 
   /* set the update callbacks */
-  httpUpdate.onStart(HTTPUpdateStarted);
-  httpUpdate.onEnd(HTTPUpdateFinished);
-  httpUpdate.onProgress(HTTPUpdateProgress);
-  httpUpdate.onError(HTTPUpdateError);
+  BytebeamUpdate.onStart(HTTPUpdateStarted);
+  BytebeamUpdate.onEnd(HTTPUpdateFinished);
+  BytebeamUpdate.onProgress(HTTPUpdateProgress);
+  BytebeamUpdate.onError(HTTPUpdateError);
 
-  t_httpUpdate_return ret = httpUpdate.update(this->secureOTAClient, otaUrl);
+  t_httpUpdate_return ret = BytebeamUpdate.update(this->secureOTAClient, otaUrl);
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
 
       /* If update failed then we will reach here, just log the error and send failure message to the server */
-      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", BytebeamUpdate.getLastError(), BytebeamUpdate.getLastErrorString().c_str());
       if(!Bytebeam.publishActionFailed(this->otaActionId)) {
         Serial.println("failed to publish negative response for firmware upgarde failure...");
       }

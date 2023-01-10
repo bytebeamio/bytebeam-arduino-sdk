@@ -11,6 +11,8 @@
     #include <FFat.h>
     #include <SPIFFS.h>
     #include <WiFiClientSecure.h>
+    #include <HTTPUpdate.h>
+    #include <Preferences.h>
 
     /* ESP32 architecture dependent defines */
     #define BYTEBEAM_ARDUINO_ARCH_ESP32
