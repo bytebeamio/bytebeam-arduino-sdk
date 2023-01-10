@@ -4,26 +4,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <time.h>
-#include <FS.h>
 #include <PubSubClient.h>
-#include <WiFiClientSecure.h>
-
-#if defined(ESP32) || defined(ARDUINO_ARCH_ESP32)
-    /* ESP32 architecture dependent includes */
-    #include <FFat.h>
-    #include <SPIFFS.h>
-
-    /* ESP32 architecture dependent defines */
-    #define BYTEBEAM_ARDUINO_ARCH_FS
-    #define BYTEBEAM_ARDUINO_ARCH_FATFS
-    #define BYTEBEAM_ARDUINO_ARCH_SPIFFS
-    #define BYTEBEAM_ARDUINO_ARCH_LITTLEFS
-    #define BYTEBEAM_ARDUINO_ARCH_SD
-#endif
-
-#ifndef FILE_READ
-#define FILE_READ "r"
-#endif
+#include "BytebeamOTA.h"
+#include "BytebeamArchDefines.h"
 
 /**
  * @enum deviceConfigFileSystem
@@ -48,9 +31,6 @@ typedef enum {
 
 /* This macro is used to specify the name of the device config file */
 #define DEVICE_CONFIG_FILE_NAME "/device_config.json"
-
-/* This macro is used to specify the maximum size of device config json in bytes that need to be handled for particular device */
-#define DEVICE_CONFIG_STR_LENGTH 8192
 
 /* This macro is used to specify the maximum number of attempts we will perform to reconnect to the server in case the client got disconnect */
 #define BYTEBEAM_CONNECT_MAX_RETRIES 5
@@ -124,12 +104,15 @@ private:
     const char* caCertPem;
     const char* clientCertPem;
     const char* clientKeyPem;
-    WiFiClientSecure secureClient;
     int actionFuncsHandlerIdx;
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
     char* deviceConfigStr;
     bool isClientActive;
     bool isOTAEnable;
+
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+        WiFiClientSecure secureClient;
+    #endif
 };
 
 extern BytebeamArduino Bytebeam;

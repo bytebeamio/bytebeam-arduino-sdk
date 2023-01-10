@@ -1,15 +1,11 @@
 #include "BytebeamArduino.h"
 
-#if BYTEBEAM_OTA_ENABLE
-  #include "BytebeamOTA.h"
-#endif
-
 /* This flag will prevent the use of handle actions api directly as this api is meant for internal usage
  * If you really want to call the handle actions api directly, probably you have to step into debug mode 
  */
 bool handleActionFlag = false;
 
-void SubscribeCallback(char* topic, byte* message, unsigned int length) {
+static void BytebeamActionsCallback(char* topic, byte* message, unsigned int length) {
   Serial.println("I am SubscribeCallback()");
 
   Serial.print("{topic : ");
@@ -44,7 +40,7 @@ unsigned long long getMilliseconds() {
 }
 
 boolean BytebeamArduino::subscribe(const char* topic) {
-  /* skipping the connection checking here as we are not calling this function directly */
+  // skipping the connection checking here as we are not calling this function directly
   // if(!PubSubClient::connected()) {
   //   Serial.printf("subscribe abort, topic : %s. bytebeam client is not connected to the server...\n", topic);
   //   return false;
@@ -60,7 +56,7 @@ boolean BytebeamArduino::subscribe(const char* topic) {
 }
 
 boolean BytebeamArduino::unsubscribe(const char* topic) {
-  /* skipping the connection checking here as we are not calling this function directly */
+  // skipping the connection checking here as we are not calling this function directly
   // if(!PubSubClient::connected()) {
   //   Serial.printf("unsubscribe abort, topic : %s. bytebeam client is not connected to the server...\n", topic);
   //   return false;
@@ -76,7 +72,7 @@ boolean BytebeamArduino::unsubscribe(const char* topic) {
 }
 
 boolean BytebeamArduino::publish(const char* topic, const char* payload) {
-  /* skipping the connection checking here as we are not calling this function directly */
+  // skipping the connection checking here as we are not calling this function directly
   // if(!PubSubClient::connected()) {
   //   Serial.printf("publish abort, topic : %s. bytebeam client is not connected to the server...\n", topic);
   //   return false;
@@ -128,7 +124,7 @@ boolean BytebeamArduino::unsubscribeToActions() {
 }
 
 boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercentage, char* status, char* error) {
-  /* skipping the connection checking here as we are not calling this function directly */
+  // skipping the connection checking here as we are not calling this function directly
   // if(!PubSubClient::connected()) {
   //   Serial.printf("publish action status abort, bytebeam client is not connected to the server...\n");
   //   return false;
@@ -184,7 +180,6 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
      */
-
   #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
       case FATFS_FILE_SYSTEM:
         Serial.println("FATFS file system detected !");
@@ -255,7 +250,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
     File file = ptrToFS->open(path, FILE_READ);
     if (!file || file.isDirectory()) {
-      Serial.println("- failed to open file for reading");
+      Serial.println("- failed to open device config file for reading");
       return false;
     }
 
@@ -264,14 +259,14 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     int strSize = 0;
 
     strSize = file.size() + 1;
-    if(strSize <= 0) {
-      Serial.println("failed to get json file size");
+    if(strSize <= 1) {
+      Serial.println("failed to get device config file size");
       return false;
     }
 
     this->deviceConfigStr = (char*) malloc(strSize);
     if(this->deviceConfigStr == NULL) {
-      Serial.println("failed to allocate the memory for json file");
+      Serial.println("failed to allocate the memory for device config file");
       return false;
     }
 
@@ -288,7 +283,6 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
      */
-
   #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
       case FATFS_FILE_SYSTEM:
         // de-initalize the FATFS file system
@@ -357,7 +351,7 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
     Serial.println("deserializeJson() success");
   }
   
-  Serial.println("Obtaining device variables");
+  Serial.println("Obtaining device config file variables");
 
   this->mqttPort      = deviceConfigJson["port"];
   this->mqttBrokerUrl = deviceConfigJson["broker"];
@@ -378,7 +372,7 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
       return false;
     }
   }
-  Serial.println("- obtain device variables");
+  Serial.println("- obtain device config file variables");
 
 #if DEBUG_BYTEBEAM_ARDUINO
   Serial.println(this->mqttPort);
@@ -390,19 +384,32 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   Serial.println(this->clientKeyPem);
 #endif
 
+  Serial.printf("Project Id : %s and Device Id : %s\n", this->projectId, this->deviceId);
+
   return true;
 }
 
 boolean BytebeamArduino::setupBytebeamClient() {
-  secureClient.setCACert(this->caCertPem);
-  secureClient.setCertificate(this->clientCertPem); 
-  secureClient.setPrivateKey(this->clientKeyPem);
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  this->secureClient.setCACert(this->caCertPem);
+  this->secureClient.setCertificate(this->clientCertPem);
+  this->secureClient.setPrivateKey(this->clientKeyPem);
+#endif
 
-  PubSubClient::setClient(secureClient);
-  PubSubClient::setCallback(SubscribeCallback);
+  PubSubClient::setClient(this->secureClient);
+  PubSubClient::setCallback(BytebeamActionsCallback);
   PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
 
-  return PubSubClient::connect("BytebeamClient");
+  Serial.print("Connecting To Bytebeam Cloud : ");
+
+  if(!PubSubClient::connect("BytebeamClient")) {
+    Serial.println("ERROR");
+    return false;
+  }
+
+  Serial.println("CONNECTED");
+
+  return true;
 }
 
 BytebeamArduino::BytebeamArduino() {
@@ -430,7 +437,7 @@ BytebeamArduino::~BytebeamArduino() {
 boolean BytebeamArduino::begin() {
 #ifdef BYTEBEAM_ARDUINO_ARCH_FS
   if(!readDeviceConfigFile()) {
-    Serial.println("begin abort, error while reading the device config file...");
+    Serial.println("begin abort, error while reading the device config file...\n");
     return false;
   }
 #else
@@ -438,7 +445,7 @@ boolean BytebeamArduino::begin() {
 #endif
             
   if(!parseDeviceConfigFile()) {
-    Serial.println("begin abort, error while parsing the device config file...");
+    Serial.println("begin abort, error while parsing the device config file...\n");
     return false;
   }
 
@@ -452,12 +459,10 @@ boolean BytebeamArduino::begin() {
   }
 #endif
 
-  Serial.printf("connecting to bytebeam server, project_id is %s and device_id is %s : ", this->projectId, this->deviceId);
   if(!setupBytebeamClient()) {
-    Serial.println("begin abort, error while connecting to server...");
+    Serial.println("begin abort, error while connecting to server...\n");
     return false;
   }
-  Serial.println("connected"); 
 
 #if BYTEBEAM_OTA_ENABLE  
   if(BytebeamOta.otaUpdateFlag) {
@@ -474,12 +479,12 @@ boolean BytebeamArduino::begin() {
 #endif
 
   if(!subscribeToActions()) {
-    Serial.println("begin abort, error while subscribe to actions...");
+    Serial.println("begin abort, error while subscribe to actions...\n");
     return false;
   }
 
   isClientActive = true;
-  Serial.println("bytebeam client activated successfully !"); 
+  Serial.println("bytebeam client activated successfully !\n");
 
   return true;
 }
@@ -597,16 +602,15 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   Serial.println(kind);
 #endif
 
-  //
-  // Above way of extracting json will give the pointers to the json itself, So If you want to use the parameter 
-  // beyond the scope of this function then you must create a copy of it and then pass it. i.e (id and payload)
-  //
+  /* Above way of extracting json will give the pointers to the json itself, So If you want to use the parameter
+   * beyond the scope of this function then you must create a copy of it and then pass it. i.e (id and payload)
+   */
 
   int strSize = 0;
   int tempVar = 0;
 
   strSize = snprintf(NULL, 0, id) + 1;
-  if(strSize <= 0) {
+  if(strSize <= 1) {
     Serial.println("failed to get action id size");
     return false;
   }
@@ -624,7 +628,7 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   }
 
   strSize = snprintf(NULL, 0, payload) + 1;
-  if(strSize <= 0) {
+  if(strSize <= 1) {
     Serial.println("failed to get payload size");
     return false;
   }
