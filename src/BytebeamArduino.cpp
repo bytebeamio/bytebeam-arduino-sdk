@@ -1,9 +1,14 @@
 #include "BytebeamArduino.h"
 
+/* This object will represent the OTA library, We will be exposing the necessary functionality and info
+ * for the usage, If you want to do any OTA stuff this guy is for you.
+ */
+static BytebeamOTA BytebeamOTA;
+
 /* This flag will prevent the use of handle actions api directly as this api is meant for internal usage
  * If you really want to call the handle actions api directly, probably you have to step into debug mode 
  */
-bool handleActionFlag = false;
+static bool handleActionFlag = false;
 
 static void BytebeamActionsCallback(char* topic, byte* message, unsigned int length) {
   Serial.println("I am SubscribeCallback()");
@@ -450,9 +455,9 @@ boolean BytebeamArduino::begin() {
   }
 
 #if BYTEBEAM_OTA_ENABLE  
-  BytebeamOta.retrieveOTAInfo();
+  BytebeamOTA.retrieveOTAInfo();
 
-  if(!BytebeamOta.otaUpdateFlag) {
+  if(!BytebeamOTA.otaUpdateFlag) {
     Serial.println("RESTART: normal reboot !");
   } else {
     Serial.println("RESTART: reboot after successfull OTA update !");
@@ -465,14 +470,14 @@ boolean BytebeamArduino::begin() {
   }
 
 #if BYTEBEAM_OTA_ENABLE  
-  if(BytebeamOta.otaUpdateFlag) {
-    if(!Bytebeam.publishActionStatus(BytebeamOta.otaActionId, 100, "Completed", "OTA Success")) {
+  if(BytebeamOTA.otaUpdateFlag) {
+    if(!Bytebeam.publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
       Serial.println("failed to publish ota complete status...");
     }
-    BytebeamOta.otaUpdateFlag = false;
-    strcpy(BytebeamOta.otaActionId, "");
+    BytebeamOTA.otaUpdateFlag = false;
+    strcpy(BytebeamOTA.otaActionId, "");
 
-    BytebeamOta.clearOTAInfo();
+    BytebeamOTA.clearOTAInfo();
   }
 #else
   Serial.println("Skipped Bytebeam OTA from compilation phase i.e saving flash size");
@@ -894,12 +899,12 @@ void BytebeamArduino::end() {
   static int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
     char constructedUrl[200] = { 0 };
 
-    if(!BytebeamOta.parseOTAJson(otaPayloadStr, constructedUrl)) {
+    if(!BytebeamOTA.parseOTAJson(otaPayloadStr, constructedUrl)) {
       Serial.println("ota abort, error while parsing the ota json...");
       return false;
     }
 
-    if(!BytebeamOta.performOTA(actionId, constructedUrl)) {
+    if(!BytebeamOTA.performOTA(actionId, constructedUrl)) {
       Serial.println("ota abort, error while performing https ota...");
       return false;
     }
@@ -913,9 +918,9 @@ void BytebeamArduino::end() {
       return false;
     }
 
-    BytebeamOta.secureOtaClient.setCACert(this->caCertPem);
-    BytebeamOta.secureOtaClient.setCertificate(this->clientCertPem); 
-    BytebeamOta.secureOtaClient.setPrivateKey(this->clientKeyPem);
+    BytebeamOTA.secureOTAClient.setCACert(this->caCertPem);
+    BytebeamOTA.secureOTAClient.setCertificate(this->clientCertPem);
+    BytebeamOTA.secureOTAClient.setPrivateKey(this->clientKeyPem);
 
     if(!Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware")) {
       Serial.println("OTA enable fail !");
@@ -939,9 +944,9 @@ void BytebeamArduino::end() {
       return false;
     }
 
-    BytebeamOta.secureOtaClient.setCACert(NULL);
-    BytebeamOta.secureOtaClient.setCertificate(NULL);
-    BytebeamOta.secureOtaClient.setPrivateKey(NULL);
+    BytebeamOTA.secureOTAClient.setCACert(NULL);
+    BytebeamOTA.secureOTAClient.setCertificate(NULL);
+    BytebeamOTA.secureOTAClient.setPrivateKey(NULL);
 
     if(!removeActionHandler("update_firmware")) {
       Serial.println("OTA disable fail !");

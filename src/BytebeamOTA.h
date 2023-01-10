@@ -5,8 +5,8 @@
 #include <ArduinoJson.h>
 #include <HTTPUpdate.h>
 #include <Preferences.h>
-#include <WiFiClientSecure.h>
 #include "BytebeamArduino.h"
+#include "BytebeamArchDefines.h"
 
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_OTA false
@@ -35,9 +35,10 @@ public:
     // public variables
     bool otaUpdateFlag;
     char otaActionId[OTA_ACTION_ID_STR_LEN];
-    WiFiClientSecure secureOtaClient;
-};
 
-extern BytebeamOTA BytebeamOta;
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+        WiFiClientSecure secureOTAClient;
+    #endif
+};
 
 #endif /* BYTEBEAM_OTA_H */

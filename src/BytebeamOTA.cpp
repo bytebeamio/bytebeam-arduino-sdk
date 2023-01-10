@@ -1,5 +1,7 @@
 #include "BytebeamOTA.h"
 
+static char tempOtaActionId[OTA_ACTION_ID_STR_LEN] = "";
+
 void HTTPUpdateStarted() {
   Serial.println("CALLBACK:  HTTP update process started");
 }
@@ -23,13 +25,13 @@ void HTTPUpdateProgress(int cur, int total) {
     #endif
 
     if(loopVar == 100) {
-      if(!Bytebeam.publishActionCompleted(BytebeamOta.otaActionId)) {
+      if(!Bytebeam.publishActionCompleted(tempOtaActionId)) {
         Serial.println("failed to publish ota progress status...");
       }
       loopVar = 0;
       progressPercent = 0;
     } else {
-      if(!Bytebeam.publishActionProgress(BytebeamOta.otaActionId, progressPercent)) {
+      if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent)) {
         Serial.println("failed to publish ota progress status...");
       }
       loopVar = loopVar + percentOffset;
@@ -143,6 +145,7 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
 
   this->otaUpdateFlag = true;
   strcpy(this->otaActionId, actionId);
+  strcpy(tempOtaActionId, actionId);
 
   /* set the status led pin and disable the auto reboot, we will manually reboot after saving some information */
   httpUpdate.rebootOnUpdate(false);
@@ -154,7 +157,7 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   httpUpdate.onProgress(HTTPUpdateProgress);
   httpUpdate.onError(HTTPUpdateError);
 
-  t_httpUpdate_return ret = httpUpdate.update(this->secureOtaClient, otaUrl);
+  t_httpUpdate_return ret = httpUpdate.update(this->secureOTAClient, otaUrl);
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
@@ -182,10 +185,9 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   if(ret != HTTP_UPDATE_OK) {
     this->otaUpdateFlag = false;
     strcpy(this->otaActionId, "");
+    strcpy(tempOtaActionId, "");
     return false;
   }
 
   return true;
 }
-
-BytebeamOTA BytebeamOta;
