@@ -14,8 +14,10 @@ This library provies a client for connecting ESP devices to [Bytebeam](https://b
 ## Dependencies :-
 - [Arduinojson](https://github.com/bblanchon/ArduinoJson)
 - [PubSubClient](https://github.com/knolleary/pubsubclient) 
-- Currently we support Arduino ESP32 Core SDK Version [2.0.3](https://github.com/espressif/arduino-esp32/tree/2.0.3) 
-- ESP32 Board
+- Core SDK ( [ESP32](https://github.com/espressif/arduino-esp32) or [ESP8266](https://github.com/esp8266/Arduino) )
+- Dev Board ( ESP32 or ESP8266 )
+
+We recommend to install the latest versions of the libraries and Core SDK.
 
 ## Library Setup and Integration :-
-This Library can be integrated with new as well as existing Arduino ESP32 sketch. Follow the [instruction guide](https://github.com/bytebeamio/BytebeamArduino/blob/main/README.md) for setting up and integrating library with your Arduino ESP32 sketch. 
+This Library can be integrated with new as well as existing Arduino ESP32 or Arduino ESP8266 sketches. Follow the [instruction guide](https://github.com/bytebeamio/BytebeamArduino/blob/main/README.md) for setting up and integrating library with your Arduino sketch. 
