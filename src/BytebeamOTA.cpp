@@ -6,6 +6,10 @@ static char tempOtaActionId[OTA_ACTION_ID_STR_LEN] = "";
   HTTPUpdate& BytebeamUpdate =  httpUpdate;
 #endif
 
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  ESP8266HTTPUpdate& BytebeamUpdate =  ESPhttpUpdate;
+#endif
+
 void HTTPUpdateStarted() {
   Serial.println("CALLBACK:  HTTP update process started");
 }
@@ -63,33 +67,51 @@ BytebeamOTA::~BytebeamOTA() {
 }
 
 void BytebeamOTA::saveOTAInfo() {
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   Preferences preferences;
 
   preferences.begin("OTAInfo");
   preferences.putBool("OTAUpdateFlag", this->otaUpdateFlag);
   preferences.putString("OTAActionId", this->otaActionId);
   preferences.end();
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  // nothing here as of now
+#endif
 
   Serial.println("NVS: Saving OTA Information");
 }
 
 void BytebeamOTA::retrieveOTAInfo() {
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   Preferences preferences;
 
   preferences.begin("OTAInfo");
   this->otaUpdateFlag = preferences.getBool("OTAUpdateFlag");
   preferences.getString("OTAActionId", this->otaActionId, OTA_ACTION_ID_STR_LEN);
   preferences.end();
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  // nothing here as of now
+#endif
 
   Serial.println("NVS: Retrieving OTA Information");
 }
 
 void BytebeamOTA::clearOTAInfo() {
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   Preferences preferences;
 
   preferences.begin("OTAInfo");
   preferences.clear();
   preferences.end();
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  // nothing here as of now
+#endif
 
   Serial.println("NVS: Clearing OTA Information");
 }

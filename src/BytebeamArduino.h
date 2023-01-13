@@ -113,6 +113,13 @@ private:
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
         WiFiClientSecure secureClient;
     #endif
+
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+        BearSSL::X509List* rootCA = NULL;
+        BearSSL::X509List* clientCert = NULL;
+        BearSSL::PrivateKey* clientKey = NULL;
+        BearSSL::WiFiClientSecure secureClient;
+    #endif
 };
 
 extern BytebeamArduino Bytebeam;

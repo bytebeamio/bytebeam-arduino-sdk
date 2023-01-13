@@ -26,6 +26,7 @@ static void BytebeamActionsCallback(char* topic, byte* message, unsigned int len
 }
 
 unsigned long long getMilliseconds() {
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   const long  gmtOffset_sec = 19800;
   const int   daylightOffset_sec = 3600;
   const char* ntpServer = "pool.ntp.org";
@@ -42,6 +43,12 @@ unsigned long long getMilliseconds() {
   
   unsigned long long time = ((unsigned long long)now * 1000) + (millis() % 1000);
   return time;
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  // nothing here as of now
+  return 0;
+#endif
 }
 
 boolean BytebeamArduino::subscribe(const char* topic) {
@@ -403,6 +410,16 @@ boolean BytebeamArduino::setupBytebeamClient() {
   this->secureClient.setCACert(this->caCertPem);
   this->secureClient.setCertificate(this->clientCertPem);
   this->secureClient.setPrivateKey(this->clientKeyPem);
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  this->rootCA = new BearSSL::X509List(this->caCertPem);
+  this->clientCert = new BearSSL::X509List(this->clientCertPem);
+  this->clientKey = new BearSSL::PrivateKey(this->clientKeyPem);
+
+  this->secureClient.setBufferSizes(2048, 2048);
+  this->secureClient.setTrustAnchors(this->rootCA);
+  this->secureClient.setClientRSACert(this->clientCert, this->clientKey);
 #endif
 
   PubSubClient::setClient(this->secureClient);
@@ -890,6 +907,12 @@ void BytebeamArduino::end() {
   free(this->deviceConfigStr);
   this->deviceConfigStr = NULL;
 
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  free(this->rootCA);
+  free(this->clientCert);
+  free(this->clientKey);
+#endif
+
   resetActionHandlerArray();
 
   isClientActive = false;
@@ -928,6 +951,12 @@ void BytebeamArduino::end() {
     BytebeamOTA.secureOTAClient.setPrivateKey(this->clientKeyPem);
   #endif
 
+  #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+    BytebeamOTA.secureOTAClient.setBufferSizes(2048, 2048);
+    BytebeamOTA.secureOTAClient.setTrustAnchors(this->rootCA);
+    BytebeamOTA.secureOTAClient.setClientRSACert(this->clientCert, this->clientKey);
+  #endif
+
     if(!Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware")) {
       Serial.println("OTA enable fail !");
       return false;
@@ -954,6 +983,12 @@ void BytebeamArduino::end() {
       BytebeamOTA.secureOTAClient.setCACert(NULL);
       BytebeamOTA.secureOTAClient.setCertificate(NULL);
       BytebeamOTA.secureOTAClient.setPrivateKey(NULL);
+    #endif
+
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+      BytebeamOTA.secureOTAClient.setBufferSizes(0, 0);
+      BytebeamOTA.secureOTAClient.setTrustAnchors(NULL);
+      BytebeamOTA.secureOTAClient.setClientRSACert(NULL, NULL);
     #endif
 
     if(!removeActionHandler("update_firmware")) {

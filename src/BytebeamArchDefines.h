@@ -21,6 +21,18 @@
     #define BYTEBEAM_ARDUINO_ARCH_SPIFFS
     #define BYTEBEAM_ARDUINO_ARCH_LITTLEFS
     #define BYTEBEAM_ARDUINO_ARCH_SD
+#elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
+    /* ESP8266 architecture dependent includes */
+    #include <FS.h>
+    #include <WiFiClientSecureBearSSL.h>
+    #include <ESP8266httpUpdate.h>
+
+    /* ESP8266 architecture dependent defines */
+    #define BYTEBEAM_ARDUINO_ARCH_ESP8266
+    #define BYTEBEAM_ARDUINO_ARCH_FS
+    #define BYTEBEAM_ARDUINO_ARCH_SPIFFS
+    #define BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+    #define BYTEBEAM_ARDUINO_ARCH_SD
 #endif
 
 #endif /* BYTEBEAM_ARCH_DEFINES_H */

@@ -37,6 +37,10 @@ public:
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
         WiFiClientSecure secureOTAClient;
     #endif
+
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+        BearSSL::WiFiClientSecure secureOTAClient;
+    #endif
 };
 
 #endif /* BYTEBEAM_OTA_H */
