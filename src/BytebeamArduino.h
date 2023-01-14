@@ -27,6 +27,12 @@ typedef enum {
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_ARDUINO false
 
+/*This macro is used to specify the maximum length of bytebeam mqtt topic string*/
+#define BYTEBEAM_MQTT_TOPIC_STR_LEN 200
+
+/* This macro is used to specify the maximum number of actions that need to be handled for particular device */
+#define BYTEBEAM_NUMBER_OF_ACTIONS 10
+
 /* This macro is used to specify the file system used for provisioning the device */
 #define DEVICE_CONFIG_FILE_SYSTEM SPIFFS_FILE_SYSTEM
 
@@ -35,9 +41,6 @@ typedef enum {
 
 /* This macro is used to specify the maximum number of attempts we will perform to reconnect to the server in case the client got disconnect */
 #define BYTEBEAM_CONNECT_MAX_RETRIES 5
-
-/* This macro is used to specify the maximum number of actions that need to be handled for particular device */
-#define BYTEBEAM_NUMBER_OF_ACTIONS 10 
 
 /* This macro is used to enable the OTA i.e disable this flag to completely remove OTA from compilation phase thereby saving flash size too */
 #define BYTEBEAM_OTA_ENABLE true
@@ -71,8 +74,8 @@ public:
     boolean addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
     boolean removeActionHandler(char* actionName);
     boolean updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
-    void printActionHandlerArray();
-    void resetActionHandlerArray();
+    boolean printActionHandlerArray();
+    boolean resetActionHandlerArray();
     boolean publishActionCompleted(char* actionId);
     boolean publishActionFailed(char* actionId);
     boolean publishActionProgress(char* actionId, int progressPercentage);
@@ -83,11 +86,12 @@ public:
         boolean disableOTA();
     #endif
 
-    void end();
+    boolean end();
     
 private:
     // private functions 
-    boolean subscribe(const char* topic);
+    void initActionHandlerArray();
+    boolean subscribe(const char* topic, uint8_t qos);
     boolean unsubscribe(const char* topic);
     boolean publish(const char* topic, const char* payload);
     boolean subscribeToActions();
