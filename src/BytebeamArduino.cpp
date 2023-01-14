@@ -1,5 +1,10 @@
 #include "BytebeamArduino.h"
 
+/* This object will represent the Time library, We will be exposing the necessary functionality and info
+ * for the usage, If you want to do any Timing related stuff this guy is for you.
+ */
+static BytebeamTime BytebeamTime;
+
 /* This object will represent the OTA library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any OTA stuff this guy is for you.
  */
@@ -23,32 +28,6 @@ static void BytebeamActionsCallback(char* topic, byte* message, unsigned int len
 
   handleActionFlag = true;
   Bytebeam.handleActions((char*)message);
-}
-
-unsigned long long getMilliseconds() {
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-  const long  gmtOffset_sec = 19800;
-  const int   daylightOffset_sec = 3600;
-  const char* ntpServer = "pool.ntp.org";
-
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); 
-  
-  time_t now;
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
-    return(0);
-  }
-  time(&now);
-  
-  unsigned long long time = ((unsigned long long)now * 1000) + (millis() % 1000);
-  return time;
-#endif
-
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  // nothing here as of now
-  return 0;
-#endif
 }
 
 boolean BytebeamArduino::subscribe(const char* topic) {
@@ -147,8 +126,14 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   String actionStatusStr = "";
   StaticJsonDocument<1024> doc;
 
+  // get the epoch millis
+  if(!BytebeamTime.getEpochMillis()) {
+      Serial.println("failed to get epoch millis");
+      return false;
+  }
+
   sequence++;
-  unsigned long long milliseconds = getMilliseconds();
+  unsigned long long milliseconds = BytebeamTime.nowMillis;
 
   JsonArray actionStatusJsonArray = doc.to<JsonArray>();
   JsonObject actionStatusJsonObj_1 = actionStatusJsonArray.createNestedObject();
@@ -461,6 +446,11 @@ BytebeamArduino::~BytebeamArduino() {
 } 
 
 boolean BytebeamArduino::begin() {
+  if(!BytebeamTime.begin()) {
+    Serial.println("begin abort, time client begin failed...\n");
+    return false;
+  }
+
 #ifdef BYTEBEAM_ARDUINO_ARCH_FS
   if(!readDeviceConfigFile()) {
     Serial.println("begin abort, error while reading the device config file...\n");
@@ -510,7 +500,7 @@ boolean BytebeamArduino::begin() {
   }
 
   isClientActive = true;
-  Serial.println("bytebeam client activated successfully !\n");
+  Serial.println("Bytebeam Client Activated Successfully !\n");
 
   return true;
 }
@@ -896,6 +886,11 @@ void BytebeamArduino::end() {
     return;
   }
 
+  if(!BytebeamTime.end()) {
+    Serial.println("end abort, time client end failed...\n");
+    return;
+  }
+
   this->mqttPort = -1;
   this->mqttBrokerUrl = NULL;
   this->deviceId = NULL;
@@ -919,7 +914,13 @@ void BytebeamArduino::end() {
   isOTAEnable = false;
 
   PubSubClient::disconnect();
-  Serial.println("bytebeam client deactivated successfully !");
+
+  // log bytebeam client duration to serial :)
+  Serial.print("Bytebeam Client Duration : ");
+  Serial.print(BytebeamTime.durationMillis);
+  Serial.println("ms");
+
+  Serial.println("Bytebeam Client Deactivated Successfully !\n");
 }
 
 #if BYTEBEAM_OTA_ENABLE

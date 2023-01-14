@@ -5,6 +5,7 @@
 #include <ArduinoJson.h>
 #include <time.h>
 #include <PubSubClient.h>
+#include "BytebeamTime.h"
 #include "BytebeamOTA.h"
 #include "BytebeamArchDefines.h"
 
