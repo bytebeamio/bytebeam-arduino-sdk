@@ -2,11 +2,8 @@
 #include <WiFi.h>
 #include <BytebeamArduino.h>
 
-// on board led pin number
-#define BOARD_LED 2
-
-// led state variable
-int ledState = 0;
+// temperature stream name
+char tempStream[] = "chip_temperature";
 
 // wifi credentials
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";
@@ -16,6 +13,16 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+uint8_t temprature_sens_read();
+
+#ifdef __cplusplus
+}
+#endif
 
 // function to get the time 
 unsigned long long getEpochMillis() {
@@ -37,15 +44,14 @@ unsigned long long getEpochMillis() {
   return timeMillis;
 }
 
-// function to publish payload to device shadow
-boolean publishToDeviceShadow() {
+// function to publish chip temperature to strem
+void publishChipTemperature(char* stream) {
   static int sequence = 0;
   unsigned long long milliseconds = 0;
-  char ledStatus[200] = "";
-  char deviceShadowStream[] = "device_shadow";
+  uint8_t chipTemp = 0;
 
   const char* payload = "";
-  String deviceShadowStr = "";
+  String chipTemperatureStr = "";
   StaticJsonDocument<1024> doc;
 
   // get the current epoch millis
@@ -60,40 +66,28 @@ boolean publishToDeviceShadow() {
   // increment the sequence counter
   sequence++;
 
-  // generate the led status message string
-  sprintf(ledStatus, "LED is %s !", ledState == true? "ON" : "OFF");
+  // get the chip temperature 
+  chipTemp = (temprature_sens_read() - 32) / 1.8;
 
-  JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
-  JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
+  JsonArray chipTemperatureJsonArray = doc.to<JsonArray>();
+  JsonObject chipTemperatureJsonObj_1 = chipTemperatureJsonArray.createNestedObject();
 
-  deviceShadowJsonObj_1["timestamp"] = milliseconds;
-  deviceShadowJsonObj_1["sequence"]  = sequence;
-  deviceShadowJsonObj_1["Status"]    = ledStatus;
+  chipTemperatureJsonObj_1["timestamp"]   = milliseconds;
+  chipTemperatureJsonObj_1["sequence"]    = sequence;
+  chipTemperatureJsonObj_1["temperature"] = chipTemp;
   
-  serializeJson(deviceShadowJsonArray, deviceShadowStr);
-  payload = deviceShadowStr.c_str();
+  serializeJson(chipTemperatureJsonArray, chipTemperatureStr);
+  payload = chipTemperatureStr.c_str();
 
-  Serial.printf("publishing %s to %s\n", payload, deviceShadowStream);
+  Serial.printf("publishing %s to %s\n", payload, stream);
 
-  return Bytebeam.publishToStream(deviceShadowStream, payload);
-}
-
-// function to setup the predefined led 
-void setupLED() {
-  pinMode(BOARD_LED, OUTPUT);
-  digitalWrite(BOARD_LED, ledState);
-}
-
-// function to toggle the predefined led 
-void toggleLED() {
-  ledState = !ledState;
-  digitalWrite(BOARD_LED, ledState);
+  return Bytebeam.publishToStream(stream, payload);
 }
 
 // function to setup the wifi with predefined credentials
 void setupWifi() {
   // set the wifi to station mode to connect to a access point
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA);                       
   WiFi.begin(WIFI_SSID , WIFI_PASSWORD);
 
   Serial.println();
@@ -104,7 +98,7 @@ void setupWifi() {
     Serial.print(".");
     delay(250);
   }
-  
+
   // now it is connected to the access point just print the ip assigned to chip
   Serial.println();
   Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");
@@ -119,7 +113,7 @@ void syncTimeFromNtp() {
   struct tm timeinfo;
 
   // get the current time
-  if(!getLocalTime(&timeinfo)) {                          
+  if(!getLocalTime(&timeinfo)) {                             
     Serial.println("Failed to obtain time");
     return;
   }
@@ -129,49 +123,25 @@ void syncTimeFromNtp() {
   Serial.println();
 }
 
-// handler for ToggleLED action
-int ToggleLED_Hanlder(char* args, char* actionId) {
-  Serial.println("ToggleLED Action Received !");
-  Serial.printf("<--- args : %s, actionId : %s --->\n", args, actionId);
-
-  // toggle the led
-  toggleLED();
-
-  // publish led state to device shadow
-  if(!publishToDeviceShadow()) {
-    // publish action failed status
-    if(!Bytebeam.publishActionFailed(actionId)) {
-      Serial.println("Failed to publish action failed response for Toggle LED action");
-    }
-
-    Serial.println("Failed to publish led state to device shadow");
-    return -1;
-  }
-
-  // publish action completed status
-  if(!Bytebeam.publishActionCompleted(actionId)) {
-    Serial.println("Failed to publish action completed response for Toggle LED action");
-    return -1;
-  }
-
-  return 0;
-}
-
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   Serial.println();
 
-  setupLED();
   setupWifi();
   syncTimeFromNtp();
   
   Bytebeam.begin();
-  Bytebeam.addActionHandler(ToggleLED_Hanlder, "ToggleLED");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   Bytebeam.loop();
-  delay(5000);
+
+  // publish chip temperature every 10s
+  if(!publishChipTemperature(tempStream)) {
+    Serial.printf("Failed to publish chip temperature to %s", tempStream);
+  }
+
+  delay(10000);
 }

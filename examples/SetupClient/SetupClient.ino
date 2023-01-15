@@ -8,8 +8,8 @@
 //
 
 // wifi credentials
-const char* WIFI_SSID     = "Mayank";
-const char* WIFI_PASSWORD = "mayank_777";
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // sntp credentials
 const long  gmtOffset_sec = 19800;
@@ -18,30 +18,39 @@ const char* ntpServer = "pool.ntp.org";
 
 // function to setup the wifi with predefined credentials
 void setupWifi() {
-  WiFi.mode(WIFI_STA);                                                        // set the wifi to station mode to connect to a access point
-  WiFi.begin(WIFI_SSID , WIFI_PASSWORD);                                      // connect to acesss point with ssid and password
+  // set the wifi to station mode to connect to a access point
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID , WIFI_PASSWORD);
 
   Serial.println();
-  Serial.print("Connecting to " + String(WIFI_SSID));                         // wait till chip is being connected to wifi  (Blocking Mode)
+  Serial.print("Connecting to " + String(WIFI_SSID));
+
+  // wait till chip is being connected to wifi  (Blocking Mode)
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(250);
   }
+
+  // now it is connected to the access point just print the ip assigned to chip
   Serial.println();
-  
-  Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");   // now it is connected to access point
-  Serial.println(WiFi.localIP());                                              // print the ip assigned to chip
+  Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");
+  Serial.println(WiFi.localIP());
 }
 
 // function to sync time from ntp server with predefined credentials
 void syncTimeFromNtp() {
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);                    // set the ntp server and offset
+  // sync the time from ntp server
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)) {                                               // sync the current time from ntp server
+
+  // get the current time
+  if(!getLocalTime(&timeinfo)) {
     Serial.println("Failed to obtain time");
     return;
   }
+
+  // log the time info to serial :)
   Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
   Serial.println();
 }

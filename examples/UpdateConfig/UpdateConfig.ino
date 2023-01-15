@@ -9,8 +9,8 @@
 int ledDutyCycle = 0;
 
 // wifi credentials
-const char* WIFI_SSID     = "Mayank";
-const char* WIFI_PASSWORD = "mayank_777";
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // sntp credentials
 const long  gmtOffset_sec = 19800;
@@ -18,38 +18,49 @@ const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
 // function to get the time 
-unsigned long long getEpochTime() {
-  const long  gmtOffset_sec = 19800;
-  const int   daylightOffset_sec = 3600;
-  const char* ntpServer = "pool.ntp.org";
-
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); 
-  
+unsigned long long getEpochMillis() {
   time_t now;
   struct tm timeinfo;
+
+  // get the current time i.e make sure the device is in sync with the ntp server
   if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
-    return(0);
+    Serial.println("failed to obtain time");
+    return 0;
   }
+
+  // get the epoch time
   time(&now);
-  
-  unsigned long long time = ((unsigned long long)now * 1000) + (millis() % 1000);
-  return time;
+
+  // generate the epoch millis
+  unsigned long long timeMillis = ((unsigned long long)now * 1000) + (millis() % 1000);
+
+  return timeMillis;
 }
 
 // function to publish payload to device shadow
-void publishToDeviceShadow() {
+boolean publishToDeviceShadow() {
   static int sequence = 0;
+  unsigned long long milliseconds = 0;
+  char ledStatus[200] = "";
+  char deviceShadowStream[] = "device_shadow";
+
   const char* payload = "";
   String deviceShadowStr = "";
   StaticJsonDocument<1024> doc;
 
-  char deviceShadowStream[] = "device_shadow";
+  // get the current epoch millis
+  milliseconds = getEpochMillis();
 
+  // make sure you got the millis
+  if(milliseconds == 0) {
+    Serial.println("failed to get epoch millis");
+    return false;
+  }
+
+  // increment the sequence counter
   sequence++;
-  unsigned long long milliseconds = getEpochTime();
 
-  char ledStatus[200] = "";
+  // generate the led status message string
   float brightness = (ledDutyCycle/255.0) * 100;
   sprintf(ledStatus, "LED Brighntness is %.2f%% !", brightness);
 
@@ -62,37 +73,47 @@ void publishToDeviceShadow() {
   
   serializeJson(deviceShadowJsonArray, deviceShadowStr);
   payload = deviceShadowStr.c_str();
+
   Serial.printf("publishing %s to %s\n", payload, deviceShadowStream);
 
-  Bytebeam.publishToStream(deviceShadowStream, payload);
+  return Bytebeam.publishToStream(deviceShadowStream, payload);
 }
 
 // function to setup the wifi with predefined credentials
 void setupWifi() {
-  WiFi.mode(WIFI_STA);                                                        // set the wifi to station mode to connect to a access point
-  WiFi.begin(WIFI_SSID , WIFI_PASSWORD);                                      // connect to acesss point with ssid and password
+  // set the wifi to station mode to connect to a access point
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID , WIFI_PASSWORD);
 
   Serial.println();
-  Serial.print("Connecting to " + String(WIFI_SSID));                         // wait till chip is being connected to wifi  (Blocking Mode)
+  Serial.print("Connecting to " + String(WIFI_SSID));
+
+  // wait till chip is being connected to wifi  (Blocking Mode)
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(250);
   }
+
+  // now it is connected to the access point just print the ip assigned to chip
   Serial.println();
-  
-  Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");   // now it is connected to access point
-  Serial.println(WiFi.localIP());                                              // print the ip assigned to chip
+  Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");
+  Serial.println(WiFi.localIP());
 }
 
 // function to sync time from ntp server with predefined credentials
 void syncTimeFromNtp() {
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);                    // set the ntp server and offset
+  // sync the time from ntp server
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)) {                                               // sync the current time from ntp server
+
+  // get the current time
+  if(!getLocalTime(&timeinfo)) {
     Serial.println("Failed to obtain time");
     return;
   }
+
+  // log the time info to serial :)
   Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
   Serial.println();
 }
@@ -106,10 +127,13 @@ int UpdateConfig_Hanlder(char* args, char* actionId) {
   DeserializationError err = deserializeJson(doc, args);
 
   if(err) {
+    // publish action failed status
+    if(!Bytebeam.publishActionFailed(actionId)) {
+      Serial.println("Failed to publish action failed response for Update Config action");
+    }
+
     Serial.printf("deserializeJson() failed : %s\n", err.c_str());
-    return 0;
-  } else {
-    Serial.println("deserializeJson() success");
+    return -1;
   }
 
   const char* name     = doc["name"];
@@ -120,10 +144,21 @@ int UpdateConfig_Hanlder(char* args, char* actionId) {
   analogWrite(BOARD_LED, ledDutyCycle);
 
   // publish led brightness to device shadow
-  publishToDeviceShadow();
+  if(!publishToDeviceShadow()) {
+    // publish action failed status
+    if(!Bytebeam.publishActionFailed(actionId)) {
+      Serial.println("Failed to publish action failed response for Update Config action");
+    }
+
+    Serial.println("Failed to publish led brightness to device shadow");
+    return -1;
+  }
 
   // publish action completed status
-  Bytebeam.publishActionCompleted(actionId);
+  if(!Bytebeam.publishActionCompleted(actionId)) {
+    Serial.println("Failed to publish action completed response for Update Config action");
+    return -1;
+  }
 
   return 0;
 }
