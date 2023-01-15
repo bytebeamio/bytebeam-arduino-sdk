@@ -90,6 +90,7 @@ public:
     
 private:
     // private functions 
+    void printArchitectureInfo();
     void initActionHandlerArray();
     boolean subscribe(const char* topic, uint8_t qos);
     boolean unsubscribe(const char* topic);

@@ -34,6 +34,38 @@ static void BytebeamActionsCallback(char* topic, byte* message, unsigned int len
   Bytebeam.handleActions((char*)message);
 }
 
+void BytebeamArduino::printArchitectureInfo() {
+  //
+  // log the usefull architecture information to serial :)
+  //
+
+  Serial.println("* ********************************************************************* *");
+
+  #if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
+    // log esp32 arch info to serial :)
+    Serial.printf("*\t\t\t Architecture : ESP32 \t\t\t\t*\n");
+    Serial.printf("*\t\t\t Chip Model   : %s \t\t\t*\n", ESP.getChipModel());
+    Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+    Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
+    Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
+    Serial.printf("*\t\t\t SDK Version  : %s \t\t\t\t*\n", ESP.getSdkVersion());
+  #elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
+    // log esp8266 arch info to serial :)
+    Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
+    Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
+    Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+    Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
+    Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
+    Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());
+    Serial.printf("*\t\t\t Core Version : %s \t\t\t\t*\n", ESP.getCoreVersion());
+  #else
+    // log unknown arch info to serial :)
+    Serial.println("Unknown Architecture");
+  #endif
+
+  Serial.println("* ********************************************************************* *");
+}
+
 void BytebeamArduino::initActionHandlerArray() {
   //
   // Initailize the action handler array with default values i.e NULL for pointers
@@ -491,6 +523,9 @@ BytebeamArduino::~BytebeamArduino() {
 } 
 
 boolean BytebeamArduino::begin() {
+  // It's much better to pump up architecture inforamtion in the very beginning
+  printArchitectureInfo();
+
   if(!BytebeamTime.begin()) {
     Serial.println("begin abort, time client begin failed...\n");
     return false;
