@@ -1,24 +1,16 @@
 #include "BytebeamOTA.h"
 
-static char tempOtaActionId[OTA_ACTION_ID_STR_LEN] = "";
+static char tempOtaActionId[BYTEBEAM_OTA_ACTION_ID_STR_LEN] = "";
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-  HTTPUpdate& BytebeamUpdate =  httpUpdate;
-#endif
-
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  ESP8266HTTPUpdate& BytebeamUpdate =  ESPhttpUpdate;
-#endif
-
-void HTTPUpdateStarted() {
+void BytebeamUpdateStarted() {
   Serial.println("CALLBACK:  HTTP update process started");
 }
 
-void HTTPUpdateFinished() {
+void BytebeamUpdateFinished() {
   Serial.println("CALLBACK:  HTTP update process finished");
 }
 
-void HTTPUpdateProgress(int cur, int total) {
+void BytebeamUpdateProgress(int cur, int total) {
   static int loopVar = 0;
   static int percentOffset = 10;
   static int progressPercent = 0;
@@ -29,44 +21,58 @@ void HTTPUpdateProgress(int cur, int total) {
   if(progressPercent == loopVar ) {
     #if DEBUG_BYTEBEAM_OTA
       Serial.println(progressPercent);
-      Serial.println(BytebeamOta.otaActionId);
+      Serial.println(tempOtaActionId);
     #endif
 
     if(loopVar == 100) {
       if(!Bytebeam.publishActionCompleted(tempOtaActionId)) {
         Serial.println("failed to publish ota progress status...");
       }
+
       loopVar = 0;
       progressPercent = 0;
     } else {
       if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent)) {
         Serial.println("failed to publish ota progress status...");
       }
+
       loopVar = loopVar + percentOffset;
     }
   }
 }
 
-void HTTPUpdateError(int err) {
+void BytebeamUpdateError(int err) {
   Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
 }
 
 void rebootEspWithReason() {
-  Serial.println("RESTART: booting new firmware !");
+  Serial.println("RESTART: Booting New Firmware !");
   delay(3000);
   ESP.restart();
 }
 
 BytebeamOTA::BytebeamOTA() {
+  //
+  // Initailizing all the variables with default values here
+  //
+
   this->otaUpdateFlag = false;
-  strcpy(this->otaActionId, "");
+  memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
 }
 
 BytebeamOTA::~BytebeamOTA() {
+  //
+  // Nothing much to do here, just print the log to serial :)
+  //
+
   Serial.println("I am BytebeamOTA::~BytebeamOTA()");
 }
 
 void BytebeamOTA::saveOTAInfo() {
+
+  /* Non Volatile Storage are architecture specific, so we need to provide the implementation for storing
+   * the OTA information to storage here based on the arcitecture.
+   */
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   Preferences preferences;
 
@@ -77,30 +83,75 @@ void BytebeamOTA::saveOTAInfo() {
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  // nothing here as of now
+  int add = 0;
+  int size = 512;
+  uint8_t value = 0;
+
+  EEPROM.begin(size);
+
+  value = this->otaUpdateFlag;
+  EEPROM.write(add, value);
+
+  add++;
+
+  for(int i=0; i<BYTEBEAM_OTA_ACTION_ID_STR_LEN; i++) {
+    value =  this->otaActionId[i];
+    EEPROM.write(add, value);
+    add++;
+  }
+
+  // save the changes made to the EEPROM
+  EEPROM.commit();
+
+  EEPROM.end();
 #endif
 
   Serial.println("NVS: Saving OTA Information");
 }
 
 void BytebeamOTA::retrieveOTAInfo() {
+
+  /* Non Volatile Storage are architecture specific, so we need to provide the implementation for retrieving
+   * the OTA information from storage here based on the arcitecture.
+   */
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   Preferences preferences;
 
   preferences.begin("OTAInfo");
   this->otaUpdateFlag = preferences.getBool("OTAUpdateFlag");
-  preferences.getString("OTAActionId", this->otaActionId, OTA_ACTION_ID_STR_LEN);
+  preferences.getString("OTAActionId", this->otaActionId, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
   preferences.end();
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  // nothing here as of now
+  int add = 0;
+  int size = 512;
+  uint8_t value = 0;
+
+  EEPROM.begin(size);
+
+  value = EEPROM.read(add);
+  this->otaUpdateFlag = value;
+
+  add++;
+
+  for(int i=0; i<BYTEBEAM_OTA_ACTION_ID_STR_LEN; i++) {
+    value = EEPROM.read(add);
+    this->otaActionId[i] = value;
+    add++;
+  }
+
+  EEPROM.end();
 #endif
 
   Serial.println("NVS: Retrieving OTA Information");
 }
 
-void BytebeamOTA::clearOTAInfo() {
+void BytebeamOTA::clearOTAInfoFromFlash() {
+
+  /* Non Volatile Storage are architecture specific, so we need to provide the implementation for clearing
+   * the OTA information from storage here based on the arcitecture.
+   */
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
   Preferences preferences;
 
@@ -110,10 +161,33 @@ void BytebeamOTA::clearOTAInfo() {
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  // nothing here as of now
+  int add = 0;
+  int size = 512;
+  uint8_t value = 0;
+
+  EEPROM.begin(size);
+
+  for(int i=0; i<size; i++) {
+    EEPROM.write(add, value);
+    add++;
+  }
+
+  // save the changes made to the EEPROM
+  EEPROM.commit();
+
+  EEPROM.end();
 #endif
 
   Serial.println("NVS: Clearing OTA Information");
+}
+
+void BytebeamOTA::clearOTAInfoFromRAM() {
+  //
+  // Clear the OTA Informatiom from the RAM
+  //
+
+  this->otaUpdateFlag = false;
+  memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
 }
 
 boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
@@ -154,10 +228,10 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
   Serial.println(version);
 #endif
 
-  int maxLen = 200;
+  int maxLen = BYTEBEAM_OTA_URL_STR_LEN;
   int tempVar = snprintf(urlStringReturn, maxLen,  "%s", url);
 
-  if(tempVar > maxLen) {
+  if(tempVar >= maxLen) {
     Serial.println("firmware upgrade url size exceeded buffer size");
     return false;
   }
@@ -169,29 +243,33 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
 boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   Serial.println("Performing OTA...");
 
+  // save the OTA information in RAM
   this->otaUpdateFlag = true;
   strcpy(this->otaActionId, actionId);
-  strcpy(tempOtaActionId, actionId);
+  strcpy(tempOtaActionId, this->otaActionId);
 
-  /* set the status led pin and disable the auto reboot, we will manually reboot after saving some information */
-  BytebeamUpdate.rebootOnUpdate(false);
-  BytebeamUpdate.setLedPin(BYTEBEAM_OTA_LED, LOW);
+  // disable the auto reboot, we will manually reboot after saving some information
+  this->BytebeamUpdate.rebootOnUpdate(false);
 
-  /* set the update callbacks */
-  BytebeamUpdate.onStart(HTTPUpdateStarted);
-  BytebeamUpdate.onEnd(HTTPUpdateFinished);
-  BytebeamUpdate.onProgress(HTTPUpdateProgress);
-  BytebeamUpdate.onError(HTTPUpdateError);
+  // set the status led pin
+  this->BytebeamUpdate.setLedPin(BYTEBEAM_OTA_BUILT_IN_LED, LOW);
 
-  t_httpUpdate_return ret = BytebeamUpdate.update(this->secureOTAClient, otaUrl);
+  // set the update callbacks
+  this->BytebeamUpdate.onStart(BytebeamUpdateStarted);
+  this-> BytebeamUpdate.onEnd(BytebeamUpdateFinished);
+  this-> BytebeamUpdate.onProgress(BytebeamUpdateProgress);
+  this->BytebeamUpdate.onError(BytebeamUpdateError);
+
+  // start the update process
+  t_httpUpdate_return ret = this->BytebeamUpdate.update(this->secureOTAClient, otaUrl);
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
+      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
 
-      /* If update failed then we will reach here, just log the error and send failure message to the server */
-      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", BytebeamUpdate.getLastError(), BytebeamUpdate.getLastErrorString().c_str());
+      // if update failed then we will reach here, just send the update failure message to the cloud
       if(!Bytebeam.publishActionFailed(this->otaActionId)) {
-        Serial.println("failed to publish negative response for firmware upgarde failure...");
+        Serial.println("failed to publish negative response for firmware upgarde failure");
       }
       break;
 
@@ -202,16 +280,15 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
     case HTTP_UPDATE_OK:
       Serial.println("HTTP_UPDATE_OK");
 
-      /* If update is successfull then we will reach here, just save the OTA information and reboot the chip */
+      // if update is successfull then we will reach here, save the OTA information and reboot the chip
       saveOTAInfo();
       rebootEspWithReason();
       break;
   }
 
+  // if update failed, clear the OTA stuff from the RAM
   if(ret != HTTP_UPDATE_OK) {
-    this->otaUpdateFlag = false;
-    strcpy(this->otaActionId, "");
-    strcpy(tempOtaActionId, "");
+    clearOTAInfoFromRAM();
     return false;
   }
 

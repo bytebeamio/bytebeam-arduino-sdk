@@ -26,6 +26,7 @@
     #include <FS.h>
     #include <WiFiClientSecureBearSSL.h>
     #include <ESP8266httpUpdate.h>
+    #include <EEPROM.h>
 
     /* ESP8266 architecture dependent defines */
     #define BYTEBEAM_ARDUINO_ARCH_ESP8266

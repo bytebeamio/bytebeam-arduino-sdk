@@ -549,9 +549,9 @@ boolean BytebeamArduino::begin() {
   BytebeamOTA.retrieveOTAInfo();
 
   if(!BytebeamOTA.otaUpdateFlag) {
-    Serial.println("RESTART: normal reboot !");
+    Serial.println("RESTART: Normal Reboot !");
   } else {
-    Serial.println("RESTART: reboot after successfull OTA update !");
+    Serial.println("RESTART: Reboot After Successfull OTA Update !");
   }
 #endif
 
@@ -562,13 +562,12 @@ boolean BytebeamArduino::begin() {
 
 #if BYTEBEAM_OTA_ENABLE  
   if(BytebeamOTA.otaUpdateFlag) {
-    if(!Bytebeam.publishActionCompleted(BytebeamOTA.otaActionId)) {
+    if(!Bytebeam.publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
       Serial.println("failed to publish ota complete status...");
     }
-    BytebeamOTA.otaUpdateFlag = false;
-    strcpy(BytebeamOTA.otaActionId, "");
 
-    BytebeamOTA.clearOTAInfo();
+    BytebeamOTA.clearOTAInfoFromRAM();
+    BytebeamOTA.clearOTAInfoFromFlash();
   }
 #else
   Serial.println("Skipped Bytebeam OTA from compilation phase i.e saving flash size");
@@ -1040,7 +1039,7 @@ boolean BytebeamArduino::end() {
 
 #if BYTEBEAM_OTA_ENABLE
   static int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
-    char constructedUrl[200] = { 0 };
+    char constructedUrl[BYTEBEAM_OTA_URL_STR_LEN] = { 0 };
 
     if(!BytebeamOTA.parseOTAJson(otaPayloadStr, constructedUrl)) {
       Serial.println("ota abort, error while parsing the ota json...");
