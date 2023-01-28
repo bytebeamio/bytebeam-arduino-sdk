@@ -31,8 +31,7 @@ public:
     void retrieveOTAInfo();
     void clearOTAInfoFromFlash();
     void clearOTAInfoFromRAM();
-    boolean parseOTAJson(char* otaPayloadStr, char* urlStringReturn); 
-    boolean performOTA(char* actionId, char* otaUrl);
+    boolean updateFirmware(char* otaPayloadStr, char* actionId);
 
     // public variables
     bool otaUpdateFlag;
@@ -47,6 +46,11 @@ public:
         BearSSL::WiFiClientSecure secureOTAClient;
         ESP8266HTTPUpdate& BytebeamUpdate =  ESPhttpUpdate;
     #endif
+
+private:
+    // private functions
+    boolean parseOTAJson(char* otaPayloadStr, char* urlStringReturn);
+    boolean performOTA(char* actionId, char* otaUrl);
 };
 
 #endif /* BYTEBEAM_OTA_H */

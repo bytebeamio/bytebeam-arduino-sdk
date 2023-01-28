@@ -34,6 +34,12 @@ static void BytebeamActionsCallback(char* topic, byte* message, unsigned int len
   Bytebeam.handleActions((char*)message);
 }
 
+static void rebootESPWithReason(char* reason) {
+  Serial.println(reason);
+  delay(3000);
+  ESP.restart();
+}
+
 void BytebeamArduino::printArchitectureInfo() {
   //
   // log the usefull architecture information to serial :)
@@ -192,14 +198,14 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   actionStatusJsonObj_1["errors"][0] = error;
   actionStatusJsonObj_1["id"]        = actionId;
   actionStatusJsonObj_1["progress"]  = progressPercentage;
-  
+
   serializeJson(actionStatusJsonArray, actionStatusStr);
   payload = actionStatusStr.c_str();
 
   #if DEBUG_BYTEBEAM_ARDUINO
     Serial.println(payload);
   #endif
-  
+
   int maxLen = BYTEBEAM_MQTT_TOPIC_STR_LEN;
   int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
 
@@ -207,7 +213,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     Serial.println("action status topic size exceeded topic buffer size");
     return false;
   }
-  
+
   return publish(topic, payload);
 }
 
@@ -1039,19 +1045,33 @@ boolean BytebeamArduino::end() {
 
 #if BYTEBEAM_OTA_ENABLE
   static int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
-    char constructedUrl[BYTEBEAM_OTA_URL_STR_LEN] = { 0 };
+    //
+    //  Handle The Firmware Update Here
+    //
 
-    if(!BytebeamOTA.parseOTAJson(otaPayloadStr, constructedUrl)) {
-      Serial.println("ota abort, error while parsing the ota json...");
-      return false;
+    if(!BytebeamOTA.updateFirmware(otaPayloadStr, actionId)) {
+      Serial.println("Firmware Upgrade Failed.");
+
+      // clear OTA information from RAM
+      BytebeamOTA.clearOTAInfoFromRAM();
+
+      // publish firmware update failure message to cloud
+      if(!Bytebeam.publishActionFailed(actionId)) {
+        Serial.println("failed to publish negative response for firmware upgarde failure");
+      }
+
+      return -1;
+    } else {
+      Serial.println("Firmware Upgrade Success.");
+
+      // save the OTA information in flash
+      BytebeamOTA.saveOTAInfo();
+
+      // reboot the chip to boot the new firmware
+      rebootESPWithReason("RESTART: Booting New Firmware !");
+
+      return 0;
     }
-
-    if(!BytebeamOTA.performOTA(actionId, constructedUrl)) {
-      Serial.println("ota abort, error while performing https ota...");
-      return false;
-    }
-
-    return 0;
   }
 
   boolean BytebeamArduino::enableOTA() {

@@ -18,7 +18,7 @@ void BytebeamUpdateProgress(int cur, int total) {
   Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
   progressPercent = (((float)cur / (float)total) * 100.00);
 
-  if(progressPercent == loopVar ) {
+  if(progressPercent == loopVar) {
     #if DEBUG_BYTEBEAM_OTA
       Serial.println(progressPercent);
       Serial.println(tempOtaActionId);
@@ -45,10 +45,98 @@ void BytebeamUpdateError(int err) {
   Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
 }
 
-void rebootEspWithReason() {
-  Serial.println("RESTART: Booting New Firmware !");
-  delay(3000);
-  ESP.restart();
+boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
+  StaticJsonDocument<1024> otaPayloadJson;
+  DeserializationError err = deserializeJson(otaPayloadJson, otaPayloadStr);
+
+  if(err) {
+    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
+    return false;
+  } else {
+    Serial.println("deserializeJson() success");
+  }
+
+  Serial.println("Obtaining ota variables");
+
+  uint32_t length     = otaPayloadJson["content-length"];
+  bool status         = otaPayloadJson["status"];
+  const char* url     = otaPayloadJson["url"];
+  const char* version = otaPayloadJson["version"];
+
+  const char* argsName[] = {"url", "version"};
+  const char* argsStr[] = {url, version};
+  int numArg = sizeof(argsStr)/sizeof(argsStr[0]);
+
+  int argIterator = 0;
+  for(argIterator = 0; argIterator < numArg; argIterator++) {
+    if(argsStr[argIterator] == NULL) {
+      Serial.printf("- failed to obtain %s\n", argsName[argIterator]);
+      return false;
+    }
+  }
+  Serial.println("- obtain ota variables");
+
+#if DEBUG_BYTEBEAM_OTA
+  Serial.println(length);
+  Serial.println(status);
+  Serial.println(url);
+  Serial.println(version);
+#endif
+
+  int maxLen = BYTEBEAM_OTA_URL_STR_LEN;
+  int tempVar = snprintf(urlStringReturn, maxLen,  "%s", url);
+
+  if(tempVar >= maxLen) {
+    Serial.println("firmware upgrade url size exceeded buffer size");
+    return false;
+  }
+
+  Serial.printf("constructed url is %s\n", url);
+  return true;
+}
+
+boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
+  Serial.println("Performing OTA...");
+
+  // save the OTA information in RAM
+  this->otaUpdateFlag = true;
+  strcpy(this->otaActionId, actionId);
+  strcpy(tempOtaActionId, this->otaActionId);
+
+  // disable the auto reboot, we will manually reboot after saving some information
+  this->BytebeamUpdate.rebootOnUpdate(false);
+
+  // set the status led pin
+  this->BytebeamUpdate.setLedPin(BYTEBEAM_OTA_BUILT_IN_LED, LOW);
+
+  // set the update callbacks
+  this->BytebeamUpdate.onStart(BytebeamUpdateStarted);
+  this->BytebeamUpdate.onEnd(BytebeamUpdateFinished);
+  this->BytebeamUpdate.onProgress(BytebeamUpdateProgress);
+  this->BytebeamUpdate.onError(BytebeamUpdateError);
+
+  // start the update process
+  t_httpUpdate_return ret = this->BytebeamUpdate.update(this->secureOTAClient, otaUrl);
+
+  switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
+      break;
+
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("HTTP_UPDATE_NO_UPDATES");
+      break;
+
+    case HTTP_UPDATE_OK:
+      Serial.println("HTTP_UPDATE_OK");
+      break;
+  }
+
+  if(ret != HTTP_UPDATE_OK) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 BytebeamOTA::BytebeamOTA() {
@@ -190,105 +278,16 @@ void BytebeamOTA::clearOTAInfoFromRAM() {
   memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
 }
 
-boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
-  StaticJsonDocument<1024> otaPayloadJson;
-  DeserializationError err = deserializeJson(otaPayloadJson, otaPayloadStr);
+boolean BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
+  char constructedUrl[BYTEBEAM_OTA_URL_STR_LEN] = { 0 };
 
-  if(err) {
-    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
-    return false;
-  } else {
-    Serial.println("deserializeJson() success");
-  }
-  
-  Serial.println("Obtaining ota variables");
-  
-  uint32_t length     = otaPayloadJson["content-length"];
-  bool status         = otaPayloadJson["status"];
-  const char* url     = otaPayloadJson["url"];
-  const char* version = otaPayloadJson["version"];
-  
-  const char* argsName[] = {"url", "version"};
-  const char* argsStr[] = {url, version};
-  int numArg = sizeof(argsStr)/sizeof(argsStr[0]);
-  
-  int argIterator = 0;
-  for(argIterator = 0; argIterator < numArg; argIterator++) {
-    if(argsStr[argIterator] == NULL) {
-      Serial.printf("- failed to obtain %s\n", argsName[argIterator]);
-      return false;
-    }
-  }
-  Serial.println("- obtain ota variables");
-
-#if DEBUG_BYTEBEAM_OTA
-  Serial.println(length);
-  Serial.println(status);
-  Serial.println(url);
-  Serial.println(version);
-#endif
-
-  int maxLen = BYTEBEAM_OTA_URL_STR_LEN;
-  int tempVar = snprintf(urlStringReturn, maxLen,  "%s", url);
-
-  if(tempVar >= maxLen) {
-    Serial.println("firmware upgrade url size exceeded buffer size");
+  if(!parseOTAJson(otaPayloadStr, constructedUrl)) {
+    Serial.println("OTA Fail, Error while parsing the OTA Json");
     return false;
   }
 
-  Serial.printf("constructed url is %s\n", url);
-  return true;
-}
-
-boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
-  Serial.println("Performing OTA...");
-
-  // save the OTA information in RAM
-  this->otaUpdateFlag = true;
-  strcpy(this->otaActionId, actionId);
-  strcpy(tempOtaActionId, this->otaActionId);
-
-  // disable the auto reboot, we will manually reboot after saving some information
-  this->BytebeamUpdate.rebootOnUpdate(false);
-
-  // set the status led pin
-  this->BytebeamUpdate.setLedPin(BYTEBEAM_OTA_BUILT_IN_LED, LOW);
-
-  // set the update callbacks
-  this->BytebeamUpdate.onStart(BytebeamUpdateStarted);
-  this-> BytebeamUpdate.onEnd(BytebeamUpdateFinished);
-  this-> BytebeamUpdate.onProgress(BytebeamUpdateProgress);
-  this->BytebeamUpdate.onError(BytebeamUpdateError);
-
-  // start the update process
-  t_httpUpdate_return ret = this->BytebeamUpdate.update(this->secureOTAClient, otaUrl);
-
-  switch (ret) {
-    case HTTP_UPDATE_FAILED:
-      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
-
-      // if update failed then we will reach here, just send the update failure message to the cloud
-      if(!Bytebeam.publishActionFailed(this->otaActionId)) {
-        Serial.println("failed to publish negative response for firmware upgarde failure");
-      }
-      break;
-
-    case HTTP_UPDATE_NO_UPDATES:
-      Serial.println("HTTP_UPDATE_NO_UPDATES");
-      break;
-
-    case HTTP_UPDATE_OK:
-      Serial.println("HTTP_UPDATE_OK");
-
-      // if update is successfull then we will reach here, save the OTA information and reboot the chip
-      saveOTAInfo();
-      rebootEspWithReason();
-      break;
-  }
-
-  // if update failed, clear the OTA stuff from the RAM
-  if(ret != HTTP_UPDATE_OK) {
-    clearOTAInfoFromRAM();
+  if(!performOTA(actionId, constructedUrl)) {
+    Serial.println("OTA Fail, Error while performing HTTPS OTA");
     return false;
   }
 
