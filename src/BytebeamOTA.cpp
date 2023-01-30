@@ -24,18 +24,17 @@ void BytebeamUpdateProgress(int cur, int total) {
       Serial.println(tempOtaActionId);
     #endif
 
-    if(loopVar == 100) {
-      if(!Bytebeam.publishActionCompleted(tempOtaActionId)) {
-        Serial.println("failed to publish ota progress status...");
-      }
+    // publish the OTA progress
+    if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent)) {
+      Serial.println("failed to publish ota progress status...");
+    }
 
+    if(loopVar == 100) {
+      // reset the variables
       loopVar = 0;
       progressPercent = 0;
     } else {
-      if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent)) {
-        Serial.println("failed to publish ota progress status...");
-      }
-
+      // mark the next progress stamp
       loopVar = loopVar + percentOffset;
     }
   }

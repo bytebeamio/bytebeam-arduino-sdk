@@ -146,6 +146,11 @@ boolean BytebeamArduino::subscribeToActions() {
     return false;
   }
 
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(qos);
+  Serial.println(topic);
+#endif
+
   return subscribe(topic, qos);
 }
 
@@ -165,6 +170,10 @@ boolean BytebeamArduino::unsubscribeToActions() {
     Serial.println("unsubscribe action topic size exceeded topic buffer size");
     return false;
   }
+
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(topic);
+#endif
 
   return unsubscribe(topic);
 }
@@ -202,10 +211,6 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   serializeJson(actionStatusJsonArray, actionStatusStr);
   payload = actionStatusStr.c_str();
 
-  #if DEBUG_BYTEBEAM_ARDUINO
-    Serial.println(payload);
-  #endif
-
   int maxLen = BYTEBEAM_MQTT_TOPIC_STR_LEN;
   int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
 
@@ -214,10 +219,15 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     return false;
   }
 
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(topic);
+  Serial.println(payload);
+#endif
+
   return publish(topic, payload);
 }
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_FS
+#ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
   boolean BytebeamArduino::readDeviceConfigFile() {
 
     /* This file system pointer will store the address of the selected file system, So after begin and end operations
@@ -230,7 +240,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
      */
-  #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FATFS
       case FATFS_FILE_SYSTEM:
         Serial.println("FATFS file system detected !");
 
@@ -246,7 +256,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SPIFFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
       case SPIFFS_FILE_SYSTEM:
         Serial.println("SPIFFS file system detected !");
 
@@ -262,7 +272,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
       case LITTLEFS_FILE_SYSTEM:
         Serial.println("LITTLEFS file system detected !");
 
@@ -273,7 +283,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SD
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
       case SD_FILE_SYSTEM:
         Serial.println("SD file system detected !");
 
@@ -336,7 +346,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
      */
-  #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FATFS
       case FATFS_FILE_SYSTEM:
         // de-initalize the FATFS file system
         FFat.end();
@@ -344,7 +354,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SPIFFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
       case SPIFFS_FILE_SYSTEM:
         // de-initalize the SPIFFS file system
         SPIFFS.end();
@@ -352,7 +362,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
       case LITTLEFS_FILE_SYSTEM:
         // de-initalize the LITTLEFS file system
         // nothing to do here yet
@@ -360,7 +370,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SD
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
       case SD_FILE_SYSTEM:
         // de-initalize the SD file system
         // nothing to do here yet
@@ -580,7 +590,7 @@ boolean BytebeamArduino::begin() {
     return false;
   }
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_FS
+#ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
   if(!readDeviceConfigFile()) {
     Serial.println("begin abort, error while reading the device config file...\n");
     return false;
@@ -635,6 +645,7 @@ boolean BytebeamArduino::begin() {
 }
 
 boolean BytebeamArduino::loop() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::loop() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -684,6 +695,7 @@ boolean BytebeamArduino::loop() {
 }
 
 boolean BytebeamArduino::connected() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::connected() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -699,6 +711,7 @@ boolean BytebeamArduino::connected() {
 }
 
 boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::handleActions() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -832,6 +845,7 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
 }
 
 boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::addActionHandler() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -858,6 +872,7 @@ boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actio
 }
 
 boolean BytebeamArduino::removeActionHandler(char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::removeActionHandler() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -889,6 +904,7 @@ boolean BytebeamArduino::removeActionHandler(char* actionName) {
 }
 
 boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::updateActionHandler ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -913,6 +929,7 @@ boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char*
 }
 
 boolean BytebeamArduino::printActionHandlerArray() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::printActionHandlerArray() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -934,6 +951,7 @@ boolean BytebeamArduino::printActionHandlerArray() {
 }
 
 boolean BytebeamArduino::resetActionHandlerArray() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::resetActionHandlerArray() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -945,6 +963,7 @@ boolean BytebeamArduino::resetActionHandlerArray() {
 }
 
 boolean BytebeamArduino::publishActionCompleted(char* actionId) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishActionCompleted() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -966,6 +985,7 @@ boolean BytebeamArduino::publishActionCompleted(char* actionId) {
 }
 
 boolean BytebeamArduino::publishActionFailed(char* actionId) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishActionFailed() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -987,6 +1007,7 @@ boolean BytebeamArduino::publishActionFailed(char* actionId) {
 }
 
 boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishActionProgress() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -1008,6 +1029,7 @@ boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPerce
 }
 
 boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishToStream() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -1029,10 +1051,16 @@ boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) 
     return false;
   }
 
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(topic);
+  Serial.println(payload);
+#endif
+
   return publish(topic, payload);
 }
 
 boolean BytebeamArduino::end() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::end() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -1109,6 +1137,7 @@ boolean BytebeamArduino::end() {
   }
 
   boolean BytebeamArduino::enableOTA() {
+    // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
       Serial.println("BytebeamArduino::enableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
       return false;
@@ -1136,11 +1165,13 @@ boolean BytebeamArduino::end() {
   }
 
   boolean BytebeamArduino::disableOTA() {
+    // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
       Serial.println("BytebeamArduino::disableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
       return false;
     }
 
+    // before going ahead make sure OTA is enabled
     if(!this->isOTAEnable) {
       Serial.println("BytebeamArduino::disableOTA() ---> OTA is not enabled yet, enable the OTA");
       return false;

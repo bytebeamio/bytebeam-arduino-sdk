@@ -4,7 +4,6 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
 BytebeamTime::BytebeamTime() {
-
     //
     // Initailizing all the variables with default values here
     //
@@ -17,7 +16,6 @@ BytebeamTime::BytebeamTime() {
 }
 
 BytebeamTime::~BytebeamTime() {
-
     //
     // Nothing much to do here, just print the log :)
     //
