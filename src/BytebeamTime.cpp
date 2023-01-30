@@ -13,6 +13,7 @@ BytebeamTime::BytebeamTime() {
     this->prevMillis = 0;
     this->nowMillis = 0;
     this->endMillis = 0;
+    this->durationMillis = 0;
 }
 
 BytebeamTime::~BytebeamTime() {
@@ -42,6 +43,9 @@ boolean BytebeamTime::begin() {
 
     // save the begin epoch millis
     this->beginMillis = this->nowMillis;
+
+    // reset the durationMillis i.e we will start a new session
+    this->durationMillis = 0;
 
     // log begin information to serial :)
     Serial.println("TIME : Client begin! ");
@@ -89,6 +93,12 @@ boolean BytebeamTime::end() {
     
     // end the time client
     timeClient.end();
+
+    // reset the time variables except durationMillis i.e we need to pump up the duration
+    this->beginMillis = 0;
+    this->prevMillis = 0;
+    this->nowMillis = 0;
+    this->endMillis = 0;
 
     // log end information to serial :)
     Serial.println("TIME : Client end! ");

@@ -101,6 +101,7 @@ private:
     boolean readDeviceConfigFile();
     boolean parseDeviceConfigFile();
     boolean setupBytebeamClient();
+    void clearBytebeamClient();
 
     // private variables
     int mqttPort;
@@ -110,6 +111,7 @@ private:
     const char* caCertPem;
     const char* clientCertPem;
     const char* clientKeyPem;
+    const char* clientId;
     int actionFuncsHandlerIdx;
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
     char* deviceConfigStr;
@@ -121,9 +123,9 @@ private:
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-        BearSSL::X509List* rootCA = NULL;
-        BearSSL::X509List* clientCert = NULL;
-        BearSSL::PrivateKey* clientKey = NULL;
+        const BearSSL::X509List* rootCA = NULL;
+        const BearSSL::X509List* clientCert = NULL;
+        const BearSSL::PrivateKey* clientKey = NULL;
         BearSSL::WiFiClientSecure secureClient;
     #endif
 };

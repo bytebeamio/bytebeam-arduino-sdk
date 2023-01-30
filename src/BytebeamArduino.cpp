@@ -47,27 +47,27 @@ void BytebeamArduino::printArchitectureInfo() {
 
   Serial.println("* ********************************************************************* *");
 
-  #if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
-    // log esp32 arch info to serial :)
-    Serial.printf("*\t\t\t Architecture : ESP32 \t\t\t\t*\n");
-    Serial.printf("*\t\t\t Chip Model   : %s \t\t\t*\n", ESP.getChipModel());
-    Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
-    Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
-    Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
-    Serial.printf("*\t\t\t SDK Version  : %s \t\t\t\t*\n", ESP.getSdkVersion());
-  #elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
-    // log esp8266 arch info to serial :)
-    Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
-    Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
-    Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
-    Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
-    Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
-    Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());
-    Serial.printf("*\t\t\t Core Version : %s \t\t\t\t*\n", ESP.getCoreVersion());
-  #else
-    // log unknown arch info to serial :)
-    Serial.println("Unknown Architecture");
-  #endif
+#if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
+  // log esp32 arch info to serial :)
+  Serial.printf("*\t\t\t Architecture : ESP32 \t\t\t\t*\n");
+  Serial.printf("*\t\t\t Chip Model   : %s \t\t\t*\n", ESP.getChipModel());
+  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+  Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
+  Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
+  Serial.printf("*\t\t\t SDK Version  : %s \t\t\t\t*\n", ESP.getSdkVersion());
+#elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
+  // log esp8266 arch info to serial :)
+  Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
+  Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
+  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+  Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
+  Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
+  Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());
+  Serial.printf("*\t\t\t Core Version : %s \t\t\t\t*\n", ESP.getCoreVersion());
+#else
+  // log unknown arch info to serial :)
+  Serial.println("Unknown Architecture");
+#endif
 
   Serial.println("* ********************************************************************* *");
 }
@@ -413,9 +413,10 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   this->caCertPem     = deviceConfigJson["authentication"]["ca_certificate"];
   this->clientCertPem = deviceConfigJson["authentication"]["device_certificate"];
   this->clientKeyPem  = deviceConfigJson["authentication"]["device_private_key"];
+  this->clientId      = "BytebeamClient";
   
-  const char* name[] = {"broker", "device_id", "project_id", "ca_certificate", "device_certificate", "device_private_key"};
-  const char* args[] = {this->mqttBrokerUrl, this->deviceId, this->projectId, this->caCertPem, this->clientCertPem, this->clientKeyPem};
+  const char* name[] = {"broker", "device_id", "project_id", "ca_certificate", "device_certificate", "device_private_key", "clientId"};
+  const char* args[] = {this->mqttBrokerUrl, this->deviceId, this->projectId, this->caCertPem, this->clientCertPem, this->clientKeyPem, this->clientId};
   int numArg = sizeof(args)/sizeof(args[0]);
   
   int argIterator = 0;
@@ -435,6 +436,7 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   Serial.println(this->caCertPem);
   Serial.println(this->clientCertPem);
   Serial.println(this->clientKeyPem);
+  Serial.println(this->clientId);
 #endif
 
   Serial.printf("Project Id : %s and Device Id : %s\n", this->projectId, this->deviceId);
@@ -489,7 +491,7 @@ boolean BytebeamArduino::setupBytebeamClient() {
 
   Serial.print("Connecting To Bytebeam Cloud : ");
 
-  if(!PubSubClient::connect("BytebeamClient")) {
+  if(!PubSubClient::connect(this->clientId)) {
     Serial.println("ERROR");
     return false;
   }
@@ -497,6 +499,46 @@ boolean BytebeamArduino::setupBytebeamClient() {
   Serial.println("CONNECTED");
 
   return true;
+}
+
+void BytebeamArduino::clearBytebeamClient() {
+
+  /* Clearing up the bytebeam secure wifi client based on the architecture and before this make sure you have
+   * the same secure wifi client object inside the class defination.
+   */
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  this->secureClient.setCACert(NULL);
+  this->secureClient.setCertificate(NULL);
+  this->secureClient.setPrivateKey(NULL);
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  // release the allocated memory :)
+  delete this->rootCA;
+  this->rootCA = NULL;
+
+  // release the allocated memory :)
+  delete this->clientCert;
+  this->clientCert = NULL;
+
+  // release the allocated memory :)
+  delete this->clientKey;
+  this->clientKey = NULL;
+
+  this->secureClient.setBufferSizes(0, 0);
+  this->secureClient.setTrustAnchors(NULL);
+  this->secureClient.setClientRSACert(NULL, NULL);
+#endif
+
+  PubSubClient::setClient(this->secureClient);
+  PubSubClient::setCallback(NULL);
+  PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
+
+  Serial.print("Disconnecting To Bytebeam Cloud : ");
+
+  PubSubClient::disconnect();
+
+  Serial.println("DISCONNECTED");
 }
 
 BytebeamArduino::BytebeamArduino() {
@@ -511,6 +553,7 @@ BytebeamArduino::BytebeamArduino() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
+  this->clientId = NULL;
 
   this->deviceConfigStr = NULL;
 
@@ -568,7 +611,7 @@ boolean BytebeamArduino::begin() {
 
 #if BYTEBEAM_OTA_ENABLE  
   if(BytebeamOTA.otaUpdateFlag) {
-    if(!Bytebeam.publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
+    if(!publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
       Serial.println("failed to publish ota complete status...");
     }
 
@@ -1007,35 +1050,26 @@ boolean BytebeamArduino::end() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
+  this->clientId = NULL;
 
   // release the allocated memory :)
   free(this->deviceConfigStr);
   this->deviceConfigStr = NULL;
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  // release the allocated memory :)
-  delete this->rootCA;
-  this->rootCA = NULL;
-
-  // release the allocated memory :)
-  delete this->clientCert;
-  this->clientCert = NULL;
-
-  // release the allocated memory :)
-  delete this->clientKey;
-  this->clientKey = NULL;
-#endif
+  // disable the OTA if it was enabled
+  if(this->isOTAEnable) {
+    disableOTA();
+  }
 
   initActionHandlerArray();
 
-  PubSubClient::disconnect();
+  clearBytebeamClient();
 
   // log bytebeam client duration to serial :)
   Serial.print("Bytebeam Client Duration : ");
   Serial.print(BytebeamTime.durationMillis);
   Serial.println("ms");
 
-  this->isOTAEnable = false;
   this->isClientActive = false;
 
   Serial.println("Bytebeam Client Deactivated Successfully !\n");
@@ -1080,25 +1114,23 @@ boolean BytebeamArduino::end() {
       return false;
     }
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-    BytebeamOTA.secureOTAClient.setCACert(this->caCertPem);
-    BytebeamOTA.secureOTAClient.setCertificate(this->clientCertPem);
-    BytebeamOTA.secureOTAClient.setPrivateKey(this->clientKeyPem);
-  #endif
+    // setup the secure OTA client
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+      BytebeamOTA.setupSecureOTAClient(this->caCertPem, this->clientCertPem, this->clientKeyPem);
+    #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-    BytebeamOTA.secureOTAClient.setBufferSizes(2048, 2048);
-    BytebeamOTA.secureOTAClient.setTrustAnchors(this->rootCA);
-    BytebeamOTA.secureOTAClient.setClientRSACert(this->clientCert, this->clientKey);
-  #endif
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+      BytebeamOTA.setupSecureOTAClient(this->rootCA, this->clientCert, this->clientKey);
+    #endif
 
-    if(!Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware")) {
-      Serial.println("OTA enable fail !");
+    // add the OTA action handler
+    if(!addActionHandler(handleFirmwareUpdate, "update_firmware")) {
+      Serial.println("OTA Enable Failed.");
       return false;
     }
 
     this->isOTAEnable = true;
-    Serial.println("OTA enable success !");
+    Serial.println("OTA Enable Success.");
 
     return true;
   }
@@ -1114,25 +1146,17 @@ boolean BytebeamArduino::end() {
       return false;
     }
 
-    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-      BytebeamOTA.secureOTAClient.setCACert(NULL);
-      BytebeamOTA.secureOTAClient.setCertificate(NULL);
-      BytebeamOTA.secureOTAClient.setPrivateKey(NULL);
-    #endif
+    // clear the secure OTA client
+    BytebeamOTA.clearSecureOTAClient();
 
-    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-      BytebeamOTA.secureOTAClient.setBufferSizes(0, 0);
-      BytebeamOTA.secureOTAClient.setTrustAnchors(NULL);
-      BytebeamOTA.secureOTAClient.setClientRSACert(NULL, NULL);
-    #endif
-
+    // remove the OTA action handler
     if(!removeActionHandler("update_firmware")) {
-      Serial.println("OTA disable fail !");
+      Serial.println("OTA Disable Failed.");
       return false;
     }
 
     this->isOTAEnable = false;
-    Serial.println("OTA disable success !");
+    Serial.println("OTA Disable Success.");
 
     return true;
   }

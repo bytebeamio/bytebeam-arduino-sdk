@@ -15,7 +15,7 @@ void BytebeamUpdateProgress(int cur, int total) {
   static int percentOffset = 10;
   static int progressPercent = 0;
 
-  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
+  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes\n", cur, total);
   progressPercent = (((float)cur / (float)total) * 100.00);
 
   if(progressPercent == loopVar) {
@@ -276,6 +276,42 @@ void BytebeamOTA::clearOTAInfoFromRAM() {
 
   this->otaUpdateFlag = false;
   memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
+}
+
+void BytebeamOTA::setupSecureOTAClient(const void* caCert, const void* clientCert, const void* clientKey) {
+  //
+  // Setting up the secure OTA client
+  //
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  this->secureOTAClient.setCACert((const char*)caCert);
+  this->secureOTAClient.setCertificate((const char*)clientCert);
+  this->secureOTAClient.setPrivateKey((const char*)clientKey);
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  this->secureOTAClient.setBufferSizes(2048, 2048);
+  this->secureOTAClient.setTrustAnchors((const BearSSL::X509List*)caCert);
+  this->secureOTAClient.setClientRSACert((const BearSSL::X509List*)clientCert, (const BearSSL::PrivateKey*)clientKey);
+#endif
+}
+
+void BytebeamOTA::clearSecureOTAClient() {
+  //
+  // Clearing up the secure OTA client
+  //
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  this->secureOTAClient.setCACert(NULL);
+  this->secureOTAClient.setCertificate(NULL);
+  this->secureOTAClient.setPrivateKey(NULL);
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  this->secureOTAClient.setBufferSizes(0, 0);
+  this->secureOTAClient.setTrustAnchors(NULL);
+  this->secureOTAClient.setClientRSACert(NULL, NULL);
+#endif
 }
 
 boolean BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
