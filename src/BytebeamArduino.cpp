@@ -844,6 +844,31 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   return true;
 }
 
+boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
+  if(!this->isClientActive) {
+    Serial.println("BytebeamArduino::isActionHandlerThere() ---> bytebeam client is not active yet, begin the bytebeam client");
+    return false;
+  }
+
+  int actionIterator = 0;
+  int targetActionIdx = -1;
+
+  for(actionIterator = 0; actionIterator <= this->actionFuncsHandlerIdx; actionIterator++) {
+    if(!strcmp(this->actionFuncs[actionIterator].name, actionName)) {
+      targetActionIdx = actionIterator;
+    }
+  }
+
+  if(targetActionIdx == -1) {
+    Serial.printf("action : %s not found\n", actionName);
+    return false;
+  } else {
+    Serial.printf("action : %s found at index %d\n", actionName, targetActionIdx);
+    return true;
+  }
+}
+
 boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {

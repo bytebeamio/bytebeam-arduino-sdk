@@ -74,6 +74,7 @@ public:
     boolean addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
     boolean removeActionHandler(char* actionName);
     boolean updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
+    boolean isActionHandlerThere(char* actionName);
     boolean printActionHandlerArray();
     boolean resetActionHandlerArray();
     boolean publishActionCompleted(char* actionId);
