@@ -17,6 +17,45 @@ const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
+// function to setup the wifi with predefined credentials
+void setupWifi() {
+  // set the wifi to station mode to connect to a access point
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID , WIFI_PASSWORD);
+
+  Serial.println();
+  Serial.print("Connecting to " + String(WIFI_SSID));
+
+  // wait till chip is being connected to wifi  (Blocking Mode)
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(250);
+  }
+
+  // now it is connected to the access point just print the ip assigned to chip
+  Serial.println();
+  Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");
+  Serial.println(WiFi.localIP());
+}
+
+// function to sync time from ntp server with predefined credentials
+void syncTimeFromNtp() {
+  // sync the time from ntp server
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+  struct tm timeinfo;
+
+  // get the current time
+  if(!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return;
+  }
+
+  // log the time info to serial :)
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+  Serial.println();
+}
+
 // function to get the time 
 unsigned long long getEpochMillis() {
   time_t now;
@@ -79,45 +118,6 @@ boolean publishToDeviceShadow() {
   return Bytebeam.publishToStream(deviceShadowStream, payload);
 }
 
-// function to setup the wifi with predefined credentials
-void setupWifi() {
-  // set the wifi to station mode to connect to a access point
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID , WIFI_PASSWORD);
-
-  Serial.println();
-  Serial.print("Connecting to " + String(WIFI_SSID));
-
-  // wait till chip is being connected to wifi  (Blocking Mode)
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(250);
-  }
-
-  // now it is connected to the access point just print the ip assigned to chip
-  Serial.println();
-  Serial.print("Connected to " + String(WIFI_SSID) + ", Got IP address : ");
-  Serial.println(WiFi.localIP());
-}
-
-// function to sync time from ntp server with predefined credentials
-void syncTimeFromNtp() {
-  // sync the time from ntp server
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
-  struct tm timeinfo;
-
-  // get the current time
-  if(!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
-    return;
-  }
-
-  // log the time info to serial :)
-  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-  Serial.println();
-}
-
 // handler for update_config action
 int UpdateConfig_Hanlder(char* args, char* actionId) {
   Serial.println("UpdateConfig Action Received !");
@@ -171,12 +171,19 @@ void setup() {
   setupWifi();
   syncTimeFromNtp();
   
+  // begin the bytebeam client
   Bytebeam.begin();
+
+  // add the handler for update config action
   Bytebeam.addActionHandler(UpdateConfig_Hanlder, "update_config");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // bytebeam client loop
   Bytebeam.loop();
+
+  // hold on the execution for some time
   delay(5000);
 }

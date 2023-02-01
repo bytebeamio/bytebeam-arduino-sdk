@@ -67,13 +67,16 @@ void setup() {
   //  Your other application setup stuff goes here
   //
 
-  // This function will initialize and start the bytebeam client
+  // This method will initialize and start the bytebeam client
   Bytebeam.begin();
 
   //
   // If above call is successfull then your bytebeam client is now configured for the use
   // You can always check for the logs in serial monitor for the status of the above call
   //
+
+  // Call the end method to stop and de-initialize the bytebeam client at any point of time in the code
+  // Bytebeam.end();
 }
 
 void loop() {
@@ -83,8 +86,10 @@ void loop() {
   //  Your application regular stuff goes here
   //
 
-  // This function will let you maintain the connection with the bytebeam cloud
-  // In case the connection is lost, it will attempt to reconnect to the bytebeam cloud
+  // This method will let you maintain the connection with the bytebeam cloud, In case
+  // the connection is lost, it will attempt to reconnect to the bytebeam cloud
   Bytebeam.loop();
+
+  // software delay, you can customize it as per your application needs
   delay(5000);
 }

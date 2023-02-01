@@ -60,6 +60,7 @@ void setup() {
   setupWifi();
   syncTimeFromNtp();
   
+  // begin the bytebeam client
   Bytebeam.begin();
 
   // enable OTA updates for your device
@@ -68,11 +69,15 @@ void setup() {
   // disable OTA updates for your device
   // Bytebeam.disableOTA();
 
-  Serial.printf("Current Firmware Version : %s\n", fwVersion);
+  Serial.printf("Application Firmware Version : %s\n", fwVersion);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // bytebeam client loop
   Bytebeam.loop();
+
+  // hold on execution for some time
   delay(5000);
 }
