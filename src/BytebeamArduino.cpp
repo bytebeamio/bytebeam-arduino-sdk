@@ -644,6 +644,17 @@ boolean BytebeamArduino::begin() {
   return true;
 }
 
+boolean BytebeamArduino::isBegined() {
+  // return the client status i.e activated or deactivated
+  if(!this->isClientActive) {
+    Serial.println("Bytebeam Client is Deactivated.");
+    return false;
+  } else {
+    Serial.println("Bytebeam Client is Activated.");
+    return true;
+  }
+}
+
 boolean BytebeamArduino::loop() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
@@ -694,13 +705,14 @@ boolean BytebeamArduino::loop() {
   }
 }
 
-boolean BytebeamArduino::connected() {
+boolean BytebeamArduino::isConnected() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::connected() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
   }
 
+  // return the connection status i.e connected or disconnected
   if(!PubSubClient::connected()) {
     Serial.println("Bytebeam Client is not Connected to the Cloud !");
     return false;
@@ -1196,6 +1208,7 @@ boolean BytebeamArduino::end() {
       return false;
     }
 
+    // return the OTA status i.e enabled or disabled
     if(!this->isOTAEnable) {
       Serial.println("OTA is Disabled.");
       return false;

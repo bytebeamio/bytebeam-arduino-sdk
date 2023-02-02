@@ -71,8 +71,9 @@ public:
 
     // public functions
     boolean begin();
+    boolean isBegined();
     boolean loop();
-    boolean connected();
+    boolean isConnected();
     boolean handleActions(char* actionReceivedStr);
     boolean addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
     boolean removeActionHandler(char* actionName);
