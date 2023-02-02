@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <time.h>
 #include <PubSubClient.h>
 #include "BytebeamTime.h"
 #include "BytebeamOTA.h"
@@ -11,11 +10,15 @@
 
 /**
  * @enum deviceConfigFileSystem
- * This sturct contains name and function pointer for particular action 
+ * This sturct contains the available file systems that can be used for provisioning the device
  * @var deviceConfigFileSystem::FATFS_FILE_SYSTEM
  * Use FATFS file system for provisioning the device
  * @var deviceConfigFileSystem::SPIFFS_FILE_SYSTEM
  * Use SPIFFS file system for provisioning the device
+ * @var deviceConfigFileSystem::LITTLEFS_FILE_SYSTEM
+ * Use LITTLEFS file system for provisioning the device
+ * @var deviceConfigFileSystem::SD_FILE_SYSTEM
+ * Use SD file system for provisioning the device
  */
 typedef enum {
     FATFS_FILE_SYSTEM,
@@ -84,6 +87,7 @@ public:
     
     #if BYTEBEAM_OTA_ENABLE
         boolean enableOTA();
+        boolean isOTAEnabled();
         boolean disableOTA();
     #endif
 
