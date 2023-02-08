@@ -1,5 +1,10 @@
 #include "BytebeamArduino.h"
 
+/* This object will represent the Log library, We will be exposing the necessary functionality and info
+ * for the usage, If you want to do any Logging related stuff this guy is for you.
+ */
+static BytebeamLog BytebeamLog;
+
 /* This object will represent the Time library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any Timing related stuff this guy is for you.
  */

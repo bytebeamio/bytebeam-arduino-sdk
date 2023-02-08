@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
+#include "BytebeamLog.h"
 #include "BytebeamTime.h"
 #include "BytebeamOTA.h"
 #include "BytebeamArchDefines.h"
@@ -61,7 +62,7 @@ typedef struct {
     int (*func)(char* args, char* actionId);
 } actionFunctionsHandler;
 
-class BytebeamArduino : private PubSubClient {
+class BytebeamArduino : private PubSubClient, public BytebeamLog {
 public:
     // contructor
     BytebeamArduino();

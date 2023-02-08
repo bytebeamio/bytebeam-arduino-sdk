@@ -28,7 +28,8 @@ boolean BytebeamTime::begin() {
     timeClient.begin();
 
     // set the gmt time offset ( +5:30h = 19800s )
-    timeClient.setTimeOffset(19800);
+    // fix : commenting as of now as we are getting the correct time stamp
+    // timeClient.setTimeOffset(19800);
 
     // set the ntp server update interval to 30s
     timeClient.setUpdateInterval(30);
