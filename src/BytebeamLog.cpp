@@ -8,6 +8,7 @@ BytebeamLog::BytebeamLog() {
 
     this->logStream = (char*)"Logs";
     this->logLevel = BYTEBEAM_LOG_LEVEL_INFO;
+    this->isCloudLoggingEnable = true;
 }
 
 BytebeamLog::~BytebeamLog() {
@@ -18,26 +19,45 @@ BytebeamLog::~BytebeamLog() {
     Serial.println("I am BytebeamLog::~BytebeamLog()");
 }
 
-void BytebeamLog::logPrint(bytebeamLogLevel_t level, const char* tag, const char* message) {
+void BytebeamLog::log(const char* level, const char* tag, const char* message) {
     //
-    // Publish the log to cloud and if publish to cloud succedded make sure to print the print the log to serial
+    // this function will print the log in the following format
     // format : { level (millis) tag : message } i.e this format is adopted from the esp idf logging library
     //
 
+    Serial.print(level[0]);
+    Serial.print(" (");
+    Serial.print(millis());
+    Serial.print(") ");
+    Serial.print(tag);
+    Serial.print(" : ");
+    Serial.print(message);
+}
+
+void BytebeamLog::logPrint(bytebeamLogLevel_t level, const char* tag, const char* message) {
+    //
+    // this function represents high level wrapper for the cloud logging
+    //
+
+    // before going ahead make sure log level is valid
+    if(level > this->logLevel) {
+      return;
+    }
+
+    // get the level string
     const char* levelStr = bytebeamLogLevelStr[level];
 
-    if(level <= this->logLevel) {
-        if(!logPublish(levelStr, tag, message)) {
-            Serial.println("failed to publish bytebeam log.");
-        } else {
-            Serial.print(levelStr[0]);
-            Serial.print(" (");
-            Serial.print(millis());
-            Serial.print(") ");
-            Serial.print(tag);
-            Serial.print(" : ");
-            Serial.print(message);
-        }
+    // if cloud logging is disabled, print the log to serial and return :)
+    if(!this->isCloudLoggingEnable) {
+      log(levelStr, tag, message);
+      return;
+    }
+
+    // if publish to cloud succedded, print the log to serial else print error log :)
+    if(!logPublish(levelStr, tag, message)) {
+      Serial.println("failed to publish bytebeam log.");
+    } else {
+      log(levelStr, tag, message);
     }
 }
 
@@ -102,6 +122,7 @@ boolean BytebeamLog::logPublish(const char* level, const char* tag, const char* 
 
     sequence++;
     unsigned long long milliseconds = LogTime.nowMillis;
+    Serial.println(milliseconds);
 
     JsonArray logMessageJsonArray = doc.to<JsonArray>();
     JsonObject logMessageJsonObj_1 = logMessageJsonArray.createNestedObject();
@@ -118,71 +139,90 @@ boolean BytebeamLog::logPublish(const char* level, const char* tag, const char* 
     return Bytebeam.publishToStream(this->logStream, payload);
 }
 
+void BytebeamLog::enableCloudLogging() {
+  this->isCloudLoggingEnable = true;
+}
+
+boolean BytebeamLog::isCloudLoggingEnabled() {
+  // return the cloud logging status i.e enabled or disabled
+  if(!this->isCloudLoggingEnable) {
+    Serial.println("Cloud Logging is Disabled.");
+    return false;
+  } else {
+    Serial.println("Cloud Logging is Enabled.");
+    return true;
+  }
+}
+
+void BytebeamLog::disableCloudLogging() {
+  this->isCloudLoggingEnable = false;
+}
+
 void BytebeamLog::setLogLevel(bytebeamLogLevel_t level) {
   this->logLevel = level;
 }
 
-bytebeamLogLevel_t BytebeamLog::getLogLevel(void) {
+bytebeamLogLevel_t BytebeamLog::getLogLevel() {
   return this->logLevel;
 }
 
 void BytebeamLog::logError(const char* tag, const char* message) {
-  this->logPrint(BYTEBEAM_LOG_LEVEL_ERROR, tag, message);
+  logPrint(BYTEBEAM_LOG_LEVEL_ERROR, tag, message);
 }
 
 void BytebeamLog::logErrorln(const char* tag, const char* message) {
-  this->logPrintln(BYTEBEAM_LOG_LEVEL_ERROR, tag, message);
+  logPrintln(BYTEBEAM_LOG_LEVEL_ERROR, tag, message);
 }
 
 void BytebeamLog::logErrorf(const char* tag, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  this->logPrintf(BYTEBEAM_LOG_LEVEL_ERROR, tag, fmt, args);
+  logPrintf(BYTEBEAM_LOG_LEVEL_ERROR, tag, fmt, args);
   va_end(args);
 }
 
 void BytebeamLog::logWarn(const char* tag, const char* message) {
-  this->logPrint(BYTEBEAM_LOG_LEVEL_WARN, tag, message);
+  logPrint(BYTEBEAM_LOG_LEVEL_WARN, tag, message);
 }
 
 void BytebeamLog::logWarnln(const char* tag, const char* message) {
-  this->logPrintln(BYTEBEAM_LOG_LEVEL_WARN, tag, message);
+  logPrintln(BYTEBEAM_LOG_LEVEL_WARN, tag, message);
 }
 
 void BytebeamLog::logWarnf(const char* tag, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  this->logPrintf(BYTEBEAM_LOG_LEVEL_WARN, tag, fmt, args);
+  logPrintf(BYTEBEAM_LOG_LEVEL_WARN, tag, fmt, args);
   va_end(args);
 }
 
 void BytebeamLog::logInfo(const char* tag, const char* message) {
-  this->logPrint(BYTEBEAM_LOG_LEVEL_INFO, tag, message);
+  logPrint(BYTEBEAM_LOG_LEVEL_INFO, tag, message);
 }
 
 void BytebeamLog::logInfoln(const char* tag, const char* message) {
-  this->logPrintln(BYTEBEAM_LOG_LEVEL_INFO, tag, message);
+  logPrintln(BYTEBEAM_LOG_LEVEL_INFO, tag, message);
 }
 
 void BytebeamLog::logInfof(const char* tag, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  this->logPrintf(BYTEBEAM_LOG_LEVEL_INFO, tag, fmt, args);
+  logPrintf(BYTEBEAM_LOG_LEVEL_INFO, tag, fmt, args);
   va_end(args);
 }
 
 void BytebeamLog::logDebug(const char* tag, const char* message) {
-  this->logPrint(BYTEBEAM_LOG_LEVEL_DEBUG, tag, message);
+  logPrint(BYTEBEAM_LOG_LEVEL_DEBUG, tag, message);
 }
 
 void BytebeamLog::logDebugln(const char* tag, const char* message) {
-  this->logPrintln(BYTEBEAM_LOG_LEVEL_DEBUG, tag, message);
+  logPrintln(BYTEBEAM_LOG_LEVEL_DEBUG, tag, message);
 }
 
 void BytebeamLog::logDebugf(const char* tag, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  this->logPrintf(BYTEBEAM_LOG_LEVEL_DEBUG, tag, fmt, args);
+  logPrintf(BYTEBEAM_LOG_LEVEL_DEBUG, tag, fmt, args);
   va_end(args);
 }
 
@@ -191,12 +231,12 @@ void BytebeamLog::logVerbose(const char* tag, const char* message) {
 }
 
 void BytebeamLog::logVerboseln(const char* tag, const char* message) {
-  this->logPrintln(BYTEBEAM_LOG_LEVEL_VERBOSE, tag, message);
+  logPrintln(BYTEBEAM_LOG_LEVEL_VERBOSE, tag, message);
 }
 
 void BytebeamLog::logVerbosef(const char* tag, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  this->logPrintf(BYTEBEAM_LOG_LEVEL_VERBOSE, tag, fmt, args);
+  logPrintf(BYTEBEAM_LOG_LEVEL_VERBOSE, tag, fmt, args);
   va_end(args);
 }

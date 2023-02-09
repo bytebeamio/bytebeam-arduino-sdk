@@ -31,8 +31,12 @@ public:
     ~BytebeamLog();
 
     // public functions
+    void enableCloudLogging();
+    boolean isCloudLoggingEnabled();
+    void disableCloudLogging();
+
     void setLogLevel(bytebeamLogLevel_t level);
-    bytebeamLogLevel_t getLogLevel(void);
+    bytebeamLogLevel_t getLogLevel();
 
     void logError(const char* tag, const char* message);
     void logErrorln(const char* tag, const char* message);
@@ -56,6 +60,7 @@ public:
 
 private:
     // private functions
+    void log(const char* level, const char* tag, const char* message);
     void logPrint(bytebeamLogLevel_t level, const char* tag, const char* message);
     void logPrintln(bytebeamLogLevel_t level, const char* tag, const char* message);
     void logPrintf(bytebeamLogLevel_t level, const char* tag, const char* fmt, va_list args);
@@ -64,6 +69,7 @@ private:
     // private variables
     char* logStream;
     bytebeamLogLevel_t logLevel;
+    bool isCloudLoggingEnable;
 };
 
 #endif /* BYTEBEAM_LOG_H */
