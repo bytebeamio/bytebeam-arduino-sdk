@@ -63,10 +63,19 @@ void setup() {
   // begin the bytebeam client
   Bytebeam.begin();
 
+  // check if OTA is enabled or disabled for your device
+  bool OTAStatus = Bytebeam.isOTAEnabled();
+
+  if(!OTAStatus) {
+    Serial.println("OTA is Disabled.");
+  } else {
+    Serial.println("OTA is Enabled.");
+  }
+
   // enable OTA updates for your device
   Bytebeam.enableOTA();
 
-  // disable OTA updates for your device
+  // disable OTA updates for your device (default)
   // Bytebeam.disableOTA();
 
   Serial.printf("Application Firmware Version : %s\n", fwVersion);

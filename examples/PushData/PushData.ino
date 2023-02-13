@@ -11,6 +11,9 @@ const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
+// device status
+char deviceStatus[200] = "";
+
 // function to setup the wifi with predefined credentials
 void setupWifi() {
   // set the wifi to station mode to connect to a access point
@@ -74,7 +77,6 @@ unsigned long long getEpochMillis() {
 boolean publishToDeviceShadow() {
   static int sequence = 0;
   unsigned long long milliseconds = 0;
-  char deviceStatus[200] = "";
   char deviceShadowStream[] = "device_shadow";
 
   const char* payload = "";
@@ -93,8 +95,11 @@ boolean publishToDeviceShadow() {
   // increment the sequence counter
   sequence++;
 
-  // generate the device status message string
-  sprintf(deviceStatus, "Device Status : %s !", "Working");
+  // get the connection status
+  bool connectionStatus = Bytebeam.isConnected();
+
+  // get the device status
+  sprintf(deviceStatus, "Device Status : %s !", connectionStatus? "Connected" : "Disconnected");
 
   JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
   JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();

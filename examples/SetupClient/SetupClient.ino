@@ -75,6 +75,24 @@ void setup() {
   // You can always check for the logs in serial monitor for the status of the above call
   //
 
+  // check if bytebeam client is initialized or deinitialized
+  bool beginStatus = Bytebeam.isBegined();
+
+  if(!beginStatus) {
+    Serial.println("Bytebeam Client is Deinitialized.");
+  } else {
+    Serial.println("Bytebeam Client is Initialized.");
+  }
+
+  // check if bytebeam client is connected or disconnected
+  bool connectionStatus = Bytebeam.isConnected();
+
+  if(!connectionStatus) {
+    Serial.println("Bytebeam Client is Disconnected.");
+  } else {
+    Serial.println("Bytebeam Client is Connected.");
+  }
+
   // Call the end method to stop and de-initialize the bytebeam client at any point of time in the code
   // Bytebeam.end();
 }

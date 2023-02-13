@@ -12,7 +12,7 @@ const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
 // device status 
-char deviceStatus[200];
+char deviceStatus[200] = "";
 
 // cloud logging tag
 const char* TAG = "BYTEBEAM_CLOUD_LOGGING_SKETCH";
@@ -133,7 +133,7 @@ void loop() {
   bool connectionStatus = Bytebeam.isConnected();
 
   // get the device status
-  sprintf(deviceStatus, "Device Status : %s", connectionStatus? "Connected" : "Disconnected");
+  sprintf(deviceStatus, "Device Status : %s !", connectionStatus? "Connected" : "Disconnected");
 
   // log the device status to cloud
   Bytebeam.logInfoln(TAG, deviceStatus);
