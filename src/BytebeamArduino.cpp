@@ -281,9 +281,14 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
       case LITTLEFS_FILE_SYSTEM:
         Serial.println("LITTLEFS file system detected !");
 
-        // Just print the log and return :)
-        Serial.println("LITTLEFS is not supported by the library yet");
-        return false;
+        // initalize the LITTLEFS file system
+        if(!LittleFS.begin()) {
+          Serial.println("LITTLEFS mount failed");
+          return false;
+        }
+
+        // set the file system pointer to LITTLEFS Object
+        ptrToFS = &LittleFS;
 
         break;
   #endif
@@ -299,7 +304,6 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
   
-
       default:
         Serial.println("Unknown file system detected !");
 
@@ -370,7 +374,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
       case LITTLEFS_FILE_SYSTEM:
         // de-initalize the LITTLEFS file system
-        // nothing to do here yet
+        LittleFS.end();
 
         break;
   #endif

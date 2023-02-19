@@ -10,6 +10,7 @@
     #include <FS.h>
     #include <FFat.h>
     #include <SPIFFS.h>
+    #include <LittleFS.h>
     #include <WiFiClientSecure.h>
     #include <HTTPUpdate.h>
     #include <Preferences.h>
@@ -24,6 +25,7 @@
 #elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
     /* ESP8266 architecture dependent includes */
     #include <FS.h>
+    #include <LittleFS.h>
     #include <WiFiClientSecureBearSSL.h>
     #include <ESP8266httpUpdate.h>
     #include <EEPROM.h>
