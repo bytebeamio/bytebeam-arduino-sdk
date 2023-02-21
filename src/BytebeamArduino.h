@@ -3,19 +3,23 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <time.h>
 #include <PubSubClient.h>
+#include "BytebeamLog.h"
 #include "BytebeamTime.h"
 #include "BytebeamOTA.h"
 #include "BytebeamArchDefines.h"
 
 /**
  * @enum deviceConfigFileSystem
- * This sturct contains name and function pointer for particular action 
+ * This sturct contains the available file systems that can be used for provisioning the device
  * @var deviceConfigFileSystem::FATFS_FILE_SYSTEM
  * Use FATFS file system for provisioning the device
  * @var deviceConfigFileSystem::SPIFFS_FILE_SYSTEM
  * Use SPIFFS file system for provisioning the device
+ * @var deviceConfigFileSystem::LITTLEFS_FILE_SYSTEM
+ * Use LITTLEFS file system for provisioning the device
+ * @var deviceConfigFileSystem::SD_FILE_SYSTEM
+ * Use SD file system for provisioning the device
  */
 typedef enum {
     FATFS_FILE_SYSTEM,
@@ -58,7 +62,7 @@ typedef struct {
     int (*func)(char* args, char* actionId);
 } actionFunctionsHandler;
 
-class BytebeamArduino : private PubSubClient {
+class BytebeamArduino : private PubSubClient, public BytebeamLog {
 public:
     // contructor
     BytebeamArduino();
@@ -68,12 +72,14 @@ public:
 
     // public functions
     boolean begin();
+    boolean isBegined();
     boolean loop();
-    boolean connected();
+    boolean isConnected();
     boolean handleActions(char* actionReceivedStr);
     boolean addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
     boolean removeActionHandler(char* actionName);
     boolean updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
+    boolean isActionHandlerThere(char* actionName);
     boolean printActionHandlerArray();
     boolean resetActionHandlerArray();
     boolean publishActionCompleted(char* actionId);
@@ -83,6 +89,7 @@ public:
     
     #if BYTEBEAM_OTA_ENABLE
         boolean enableOTA();
+        boolean isOTAEnabled();
         boolean disableOTA();
     #endif
 
@@ -101,6 +108,7 @@ private:
     boolean readDeviceConfigFile();
     boolean parseDeviceConfigFile();
     boolean setupBytebeamClient();
+    void clearBytebeamClient();
 
     // private variables
     int mqttPort;
@@ -110,6 +118,7 @@ private:
     const char* caCertPem;
     const char* clientCertPem;
     const char* clientKeyPem;
+    const char* clientId;
     int actionFuncsHandlerIdx;
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
     char* deviceConfigStr;
@@ -121,9 +130,9 @@ private:
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-        BearSSL::X509List* rootCA = NULL;
-        BearSSL::X509List* clientCert = NULL;
-        BearSSL::PrivateKey* clientKey = NULL;
+        const BearSSL::X509List* rootCA = NULL;
+        const BearSSL::X509List* clientCert = NULL;
+        const BearSSL::PrivateKey* clientKey = NULL;
         BearSSL::WiFiClientSecure secureClient;
     #endif
 };

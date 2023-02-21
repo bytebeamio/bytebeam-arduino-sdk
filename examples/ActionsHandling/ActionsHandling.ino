@@ -2,8 +2,6 @@
 #include <WiFi.h>
 #include <BytebeamArduino.h>
 
-const char* fwVersion = "1.0.0";
-
 // wifi credentials
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
@@ -52,6 +50,28 @@ void syncTimeFromNtp() {
   Serial.println();
 }
 
+// handler for hello world action
+int HelloWorld_Hanlder(char* args, char* actionId) {
+  //
+  // nothing much to do here
+  //
+
+  Serial.println("Hello World");
+
+  return 0;
+}
+
+// yet another handler for hello world action
+int YetAnotherHelloWorld_Hanlder(char* args, char* actionId) {
+  //
+  // nothing much to do here
+  //
+
+  Serial.println("Yet Another Hello World");
+
+  return 0;
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -63,22 +83,23 @@ void setup() {
   // begin the bytebeam client
   Bytebeam.begin();
 
-  // check if OTA is enabled or disabled for your device
-  bool OTAStatus = Bytebeam.isOTAEnabled();
+  // add the handler for hello world led action
+  Bytebeam.addActionHandler(HelloWorld_Hanlder, "HelloWorld");
 
-  if(!OTAStatus) {
-    Serial.println("OTA is Disabled.");
-  } else {
-    Serial.println("OTA is Enabled.");
-  }
+  // Call the isActionHandlerThere method to check if particular action exists or not at any point of time in the code
+  // Bytebeam.isActionHandlerThere("HelloWorld");
 
-  // enable OTA updates for your device
-  Bytebeam.enableOTA();
+  // Call the updateActionHandler method to update the particular action at any point of time in the code
+  // Bytebeam.updateActionHandler(YetAnotherHelloWorld_Hanlder, "HelloWorld");
 
-  // disable OTA updates for your device (default)
-  // Bytebeam.disableOTA();
+  // Call the printActionHandlerArray method to print the action handler array at any point of time in the code
+  // Bytebeam.printActionHandlerArray();
 
-  Serial.printf("Application Firmware Version : %s\n", fwVersion);
+  // Call the removeActionHandler method to remove the particular action at any point of time in the code
+  // Bytebeam.removeActionHandler("HelloWorld");
+
+  // Call the resetActionHandlerArray method to reset the action handler array at any point of time in the code
+  // Bytebeam.resetActionHandlerArray();
 }
 
 void loop() {
@@ -87,6 +108,6 @@ void loop() {
   // bytebeam client loop
   Bytebeam.loop();
 
-  // hold on execution for some time
+  // hold on the execution for some time
   delay(5000);
 }
