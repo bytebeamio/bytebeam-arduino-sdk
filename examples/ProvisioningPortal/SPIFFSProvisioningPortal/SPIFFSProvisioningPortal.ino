@@ -38,7 +38,7 @@ const char HTML_FORM_PROVISION[] PROGMEM = R"rawliteral(
     <style>body { background-color: #000000 ; font-family: Arial, Helvetica, Sans-Serif; Color: #FFFFFF; } input[type="submit"]{background-color: #616A6B; border: none;color: white;padding:15px 48px;text-align: center;text-decoration: none;display: inline-block;font-size: 16px;}</style></head>
     <body><center>
         <h1 style="color:#ffffff; font-family:Times New Roman,Times,Serif;padding-top: 10px;padding-bottom: 5px;font-size: 70px;font-style: oblique">Bytebeam</h1>
-        <br><label style="color:#FFFFFF;font-family:Times New Roman,Times,Serif;font-size: 24px;padding-top: 5px;padding-bottom: 10px;">Provision your device </label><br><br>
+        <br><label style="color:#FFFFFF;font-family:Times New Roman,Times,Serif;font-size: 24px;padding-top: 5px;padding-bottom: 10px;">Provision your device using SPIFFS</label><br><br>
         <FORM action="/provision" method= "POST" enctype="multipart/form-data">
             <P><label style="font-family:Times New Roman">Upload device provisioning JSON file</label><br><br><input type="file" name="data"/><br><br><input type="submit" name="upload" value="Upload" title="Upload File"></P>
         </FORM>
@@ -214,7 +214,13 @@ static void handleUpload(AsyncWebServerRequest *request, String filename, size_t
         request->_tempFile.close();
         Serial.println(logmessage);
         request->redirect("/");
+        listDir(SPIFFS, "/", 0);                                           //  list the directories in the spiffs
         readFile(SPIFFS, DEVICE_CONFIG_FILE_NAME, deviceConfigReadStr);    //  read the device configuration string from spiffs
+        #if PRINT_BUFFERS_TO_SERIAL
+            Serial.println();
+            Serial.println("deviceConfigReadStr : ");
+            Serial.println(deviceConfigReadStr);
+        #endif
         // de-initalize the spiffs file system 
         SPIFFS.end();
     }

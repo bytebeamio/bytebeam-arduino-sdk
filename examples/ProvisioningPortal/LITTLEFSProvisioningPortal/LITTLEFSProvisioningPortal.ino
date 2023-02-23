@@ -9,14 +9,14 @@
 
 AsyncWebServer server(80);
 
-/* This macro is used to specify the base path of the spiffs partiiton */
+/* This macro is used to specify the base path of the littlefs partiiton */
 #define LITTLEFS_BASE_PATH "/littlefs"
 
-/* This macro is used to format the spiffs if in case the spiffs initialization fails i.e reset if not required */
-#define FORMAT_SPIFFS_IF_FAILED true
+/* This macro is used to format the littlefs if in case the littlefs initialization fails i.e reset if not required */
+#define FORMAT_LITTLEFS_IF_FAILED true
 
-/* This macro is used to format the spiffs in the beginnig i.e reset if not required */
-#define FORMAT_SPIFSS_IN_BEGINNING true
+/* This macro is used to format the littlefs in the beginnig i.e reset if not required */
+#define FORMAT_LITTLEFS_IN_BEGINNING true
 
 /* This macro is used to specify the name of the device config file */
 #define DEVICE_CONFIG_FILE_NAME "/device_config.json"
@@ -39,7 +39,7 @@ const char HTML_FORM_PROVISION[] PROGMEM = R"rawliteral(
     <style>body { background-color: #000000 ; font-family: Arial, Helvetica, Sans-Serif; Color: #FFFFFF; } input[type="submit"]{background-color: #616A6B; border: none;color: white;padding:15px 48px;text-align: center;text-decoration: none;display: inline-block;font-size: 16px;}</style></head>
     <body><center>
         <h1 style="color:#ffffff; font-family:Times New Roman,Times,Serif;padding-top: 10px;padding-bottom: 5px;font-size: 70px;font-style: oblique">Bytebeam</h1>
-        <br><label style="color:#FFFFFF;font-family:Times New Roman,Times,Serif;font-size: 24px;padding-top: 5px;padding-bottom: 10px;">Provision your device </label><br><br>
+        <br><label style="color:#FFFFFF;font-family:Times New Roman,Times,Serif;font-size: 24px;padding-top: 5px;padding-bottom: 10px;">Provision your device using Littlefs</label><br><br>
         <FORM action="/provision" method= "POST" enctype="multipart/form-data">
             <P><label style="font-family:Times New Roman">Upload device provisioning JSON file</label><br><br><input type="file" name="data"/><br><br><input type="submit" name="upload" value="Upload" title="Upload File"></P>
         </FORM>
@@ -116,26 +116,26 @@ void setup()
 #if FORMAT_SPIFSS_IN_BEGINNING
     if (!LittleFS.format())
     {
-        Serial.println("spiffs format failed");
+        Serial.println("littlefs format failed");
         return;
     }
     else
     {
-        Serial.println("spiffs format success");
+        Serial.println("littlefs format success");
     }
 #endif
 
-    if (!LittleFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH))
+    if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED, LITTLEFS_BASE_PATH))
     {
-        Serial.println("spiffs mount failed");
+        Serial.println("littlefs mount failed");
         return;
     }
     else
     {
-        Serial.println("spiffs mount success");
+        Serial.println("littlefs mount success");
     }
 
-    listDir(LittleFS, "/", 0);                                           //  list the directories in the spiffs
+    listDir(LittleFS, "/", 0);                                           //  list the directories in the littlefs
   
     setupWifi();
     servePortal();
@@ -215,8 +215,14 @@ static void handleUpload(AsyncWebServerRequest *request, String filename, size_t
         request->_tempFile.close();
         Serial.println(logmessage);
         request->redirect("/");
-        readFile(LittleFS, DEVICE_CONFIG_FILE_NAME, deviceConfigReadStr);    //  read the device configuration string from spiffs
-        // de-initalize the spiffs file system 
+        listDir(LittleFS, "/", 0);
+        readFile(LittleFS, DEVICE_CONFIG_FILE_NAME, deviceConfigReadStr);    //  read the device configuration string from littlefs
+         #if PRINT_BUFFERS_TO_SERIAL
+            Serial.println();
+            Serial.println("deviceConfigReadStr : ");
+            Serial.println(deviceConfigReadStr);
+        #endif
+        // de-initalize the littlefs file system 
         LittleFS.end();
     }
 }

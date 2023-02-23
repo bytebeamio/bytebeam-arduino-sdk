@@ -23,6 +23,9 @@ AsyncWebServer server(80);
 /* This macro is used to specify the maximum size of device config json in bytes that need to be handled for particular device */
 #define DEVICE_CONFIG_STR_LENGTH 8192
 
+/* This macro is used to print the device config read/write buffers to serial monitor i.e set to debug any issue */
+#define PRINT_BUFFERS_TO_SERIAL false  
+
 char deviceConfigReadStr[DEVICE_CONFIG_STR_LENGTH] = "";
 
 // wifi credentials
@@ -35,7 +38,7 @@ const char HTML_FORM_PROVISION[] PROGMEM = R"rawliteral(
     <style>body { background-color: #000000 ; font-family: Arial, Helvetica, Sans-Serif; Color: #FFFFFF; } input[type="submit"]{background-color: #616A6B; border: none;color: white;padding:15px 48px;text-align: center;text-decoration: none;display: inline-block;font-size: 16px;}</style></head>
     <body><center>
         <h1 style="color:#ffffff; font-family:Times New Roman,Times,Serif;padding-top: 10px;padding-bottom: 5px;font-size: 70px;font-style: oblique">Bytebeam</h1>
-        <br><label style="color:#FFFFFF;font-family:Times New Roman,Times,Serif;font-size: 24px;padding-top: 5px;padding-bottom: 10px;">Provision your device </label><br><br>
+        <br><label style="color:#FFFFFF;font-family:Times New Roman,Times,Serif;font-size: 24px;padding-top: 5px;padding-bottom: 10px;">Provision your device using FATFS</label><br><br>
         <FORM action="/provision" method= "POST" enctype="multipart/form-data">
             <P><label style="font-family:Times New Roman">Upload device provisioning JSON file</label><br><br><input type="file" name="data"/><br><br><input type="submit" name="upload" value="Upload" title="Upload File"></P>
         </FORM>
@@ -212,7 +215,13 @@ static void handleUpload(AsyncWebServerRequest *request, String filename, size_t
         request->_tempFile.close();
         Serial.println(logmessage);
         request->redirect("/");
-        readFile(FFat, DEVICE_CONFIG_FILE_NAME, deviceConfigReadStr); //  read the device configuration string from spiffs
+        listDir(FFat, "/", 0);
+        readFile(FFat, DEVICE_CONFIG_FILE_NAME, deviceConfigReadStr); //  read the device configuration string from fatfs
+        #if PRINT_BUFFERS_TO_SERIAL
+            Serial.println();
+            Serial.println("deviceConfigReadStr : ");
+            Serial.println(deviceConfigReadStr);
+        #endif
         // de-initalize the fatfs file system 
         FFat.end();
     }
