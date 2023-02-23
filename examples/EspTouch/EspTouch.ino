@@ -2,8 +2,11 @@
 #include <WiFi.h>
 #include <BytebeamArduino.h>
 
-// temperature stream name
-char tempStream[] = "chip_temperature";
+// touch gpio pin number
+#define TOUCH_GPIO_PIN 15
+
+// esp touch stream name
+char espTouchStream[] = "esp_touch";
 
 // wifi credentials
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";
@@ -13,16 +16,6 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint8_t temprature_sens_read();
-
-#ifdef __cplusplus
-}
-#endif
 
 // function to setup the wifi with predefined credentials
 void setupWifi() {
@@ -63,6 +56,11 @@ void syncTimeFromNtp() {
   Serial.println();
 }
 
+// function to get the esp touch value
+uint16_t getEspTouchValue() {
+  return touchRead(TOUCH_GPIO_PIN);
+}
+
 // function to get the time 
 unsigned long long getEpochMillis() {
   time_t now;
@@ -83,14 +81,13 @@ unsigned long long getEpochMillis() {
   return timeMillis;
 }
 
-// function to publish chip temperature to strem
-void publishChipTemperature(char* stream) {
+// function to publish esp touch value to esp touch stream
+boolean publishEspTouchValues() {
   static int sequence = 0;
   unsigned long long milliseconds = 0;
-  uint8_t chipTemp = 0;
 
   const char* payload = "";
-  String chipTemperatureStr = "";
+  String deviceShadowStr = "";
   StaticJsonDocument<1024> doc;
 
   // get the current epoch millis
@@ -105,22 +102,25 @@ void publishChipTemperature(char* stream) {
   // increment the sequence counter
   sequence++;
 
-  // get the chip temperature 
-  chipTemp = (temprature_sens_read() - 32) / 1.8;
+  // get the connection status
+  bool connectionStatus = Bytebeam.isConnected();
 
-  JsonArray chipTemperatureJsonArray = doc.to<JsonArray>();
-  JsonObject chipTemperatureJsonObj_1 = chipTemperatureJsonArray.createNestedObject();
+  // get the esp touch value
+  uint16_t touchValue = getEspTouchValue();
 
-  chipTemperatureJsonObj_1["timestamp"]   = milliseconds;
-  chipTemperatureJsonObj_1["sequence"]    = sequence;
-  chipTemperatureJsonObj_1["temperature"] = chipTemp;
+  JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
+  JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
+
+  deviceShadowJsonObj_1["timestamp"] = milliseconds;
+  deviceShadowJsonObj_1["sequence"]  = sequence;
+  deviceShadowJsonObj_1["touch"]     = touchValue;
   
-  serializeJson(chipTemperatureJsonArray, chipTemperatureStr);
-  payload = chipTemperatureStr.c_str();
+  serializeJson(deviceShadowJsonArray, deviceShadowStr);
+  payload = deviceShadowStr.c_str();
 
-  Serial.printf("publishing %s to %s\n", payload, stream);
+  Serial.printf("publishing %s to %s\n", payload, espTouchStream);
 
-  return Bytebeam.publishToStream(stream, payload);
+  return Bytebeam.publishToStream(espTouchStream, payload);
 }
 
 void setup() {
@@ -141,9 +141,9 @@ void loop() {
   // bytebeam client loop
   Bytebeam.loop();
 
-  // publish chip temperature to temperature stream
-  if(!publishChipTemperature(tempStream)) {
-    Serial.printf("Failed to publish chip temperature to %s", tempStream);
+  // publish device status to device shadow
+  if(!publishEspTouchValues()) {
+    Serial.println("Failed to publish esp touch value to esp touch stream");
   }
 
   // hold on execution for some time

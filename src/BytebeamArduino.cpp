@@ -1,5 +1,10 @@
 #include "BytebeamArduino.h"
 
+/* This object will represent the Log library, We will be exposing the necessary functionality and info
+ * for the usage, If you want to do any Logging related stuff this guy is for you.
+ */
+static BytebeamLog BytebeamLog;
+
 /* This object will represent the Time library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any Timing related stuff this guy is for you.
  */
@@ -34,6 +39,12 @@ static void BytebeamActionsCallback(char* topic, byte* message, unsigned int len
   Bytebeam.handleActions((char*)message);
 }
 
+static void rebootESPWithReason(char* reason) {
+  Serial.println(reason);
+  delay(3000);
+  ESP.restart();
+}
+
 void BytebeamArduino::printArchitectureInfo() {
   //
   // log the usefull architecture information to serial :)
@@ -41,27 +52,27 @@ void BytebeamArduino::printArchitectureInfo() {
 
   Serial.println("* ********************************************************************* *");
 
-  #if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
-    // log esp32 arch info to serial :)
-    Serial.printf("*\t\t\t Architecture : ESP32 \t\t\t\t*\n");
-    Serial.printf("*\t\t\t Chip Model   : %s \t\t\t*\n", ESP.getChipModel());
-    Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
-    Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
-    Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
-    Serial.printf("*\t\t\t SDK Version  : %s \t\t\t\t*\n", ESP.getSdkVersion());
-  #elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
-    // log esp8266 arch info to serial :)
-    Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
-    Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
-    Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
-    Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
-    Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
-    Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());
-    Serial.printf("*\t\t\t Core Version : %s \t\t\t\t*\n", ESP.getCoreVersion());
-  #else
-    // log unknown arch info to serial :)
-    Serial.println("Unknown Architecture");
-  #endif
+#if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
+  // log esp32 arch info to serial :)
+  Serial.printf("*\t\t\t Architecture : ESP32 \t\t\t\t*\n");
+  Serial.printf("*\t\t\t Chip Model   : %s \t\t\t*\n", ESP.getChipModel());
+  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+  Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
+  Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
+  Serial.printf("*\t\t\t SDK Version  : %s \t\t\t\t*\n", ESP.getSdkVersion());
+#elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
+  // log esp8266 arch info to serial :)
+  Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
+  Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
+  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+  Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
+  Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
+  Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());
+  Serial.printf("*\t\t\t Core Version : %s \t\t\t\t*\n", ESP.getCoreVersion());
+#else
+  // log unknown arch info to serial :)
+  Serial.println("Unknown Architecture");
+#endif
 
   Serial.println("* ********************************************************************* *");
 }
@@ -140,6 +151,11 @@ boolean BytebeamArduino::subscribeToActions() {
     return false;
   }
 
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(qos);
+  Serial.println(topic);
+#endif
+
   return subscribe(topic, qos);
 }
 
@@ -159,6 +175,10 @@ boolean BytebeamArduino::unsubscribeToActions() {
     Serial.println("unsubscribe action topic size exceeded topic buffer size");
     return false;
   }
+
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(topic);
+#endif
 
   return unsubscribe(topic);
 }
@@ -192,14 +212,10 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   actionStatusJsonObj_1["errors"][0] = error;
   actionStatusJsonObj_1["id"]        = actionId;
   actionStatusJsonObj_1["progress"]  = progressPercentage;
-  
+
   serializeJson(actionStatusJsonArray, actionStatusStr);
   payload = actionStatusStr.c_str();
 
-  #if DEBUG_BYTEBEAM_ARDUINO
-    Serial.println(payload);
-  #endif
-  
   int maxLen = BYTEBEAM_MQTT_TOPIC_STR_LEN;
   int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
 
@@ -207,11 +223,16 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     Serial.println("action status topic size exceeded topic buffer size");
     return false;
   }
-  
+
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(topic);
+  Serial.println(payload);
+#endif
+
   return publish(topic, payload);
 }
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_FS
+#ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
   boolean BytebeamArduino::readDeviceConfigFile() {
 
     /* This file system pointer will store the address of the selected file system, So after begin and end operations
@@ -224,7 +245,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
      */
-  #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FATFS
       case FATFS_FILE_SYSTEM:
         Serial.println("FATFS file system detected !");
 
@@ -240,7 +261,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SPIFFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
       case SPIFFS_FILE_SYSTEM:
         Serial.println("SPIFFS file system detected !");
 
@@ -256,18 +277,23 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
       case LITTLEFS_FILE_SYSTEM:
         Serial.println("LITTLEFS file system detected !");
 
-        // Just print the log and return :)
-        Serial.println("LITTLEFS is not supported by the library yet");
-        return false;
+        // initalize the LITTLEFS file system
+        if(!LittleFS.begin()) {
+          Serial.println("LITTLEFS mount failed");
+          return false;
+        }
+
+        // set the file system pointer to LITTLEFS Object
+        ptrToFS = &LittleFS;
 
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SD
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
       case SD_FILE_SYSTEM:
         Serial.println("SD file system detected !");
 
@@ -278,7 +304,6 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
   
-
       default:
         Serial.println("Unknown file system detected !");
 
@@ -330,7 +355,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
      */
-  #ifdef BYTEBEAM_ARDUINO_ARCH_FATFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FATFS
       case FATFS_FILE_SYSTEM:
         // de-initalize the FATFS file system
         FFat.end();
@@ -338,7 +363,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SPIFFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
       case SPIFFS_FILE_SYSTEM:
         // de-initalize the SPIFFS file system
         SPIFFS.end();
@@ -346,15 +371,15 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_LITTLEFS
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
       case LITTLEFS_FILE_SYSTEM:
         // de-initalize the LITTLEFS file system
-        // nothing to do here yet
+        LittleFS.end();
 
         break;
   #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_SD
+  #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
       case SD_FILE_SYSTEM:
         // de-initalize the SD file system
         // nothing to do here yet
@@ -407,9 +432,10 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   this->caCertPem     = deviceConfigJson["authentication"]["ca_certificate"];
   this->clientCertPem = deviceConfigJson["authentication"]["device_certificate"];
   this->clientKeyPem  = deviceConfigJson["authentication"]["device_private_key"];
+  this->clientId      = "BytebeamClient";
   
-  const char* name[] = {"broker", "device_id", "project_id", "ca_certificate", "device_certificate", "device_private_key"};
-  const char* args[] = {this->mqttBrokerUrl, this->deviceId, this->projectId, this->caCertPem, this->clientCertPem, this->clientKeyPem};
+  const char* name[] = {"broker", "device_id", "project_id", "ca_certificate", "device_certificate", "device_private_key", "clientId"};
+  const char* args[] = {this->mqttBrokerUrl, this->deviceId, this->projectId, this->caCertPem, this->clientCertPem, this->clientKeyPem, this->clientId};
   int numArg = sizeof(args)/sizeof(args[0]);
   
   int argIterator = 0;
@@ -429,6 +455,7 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   Serial.println(this->caCertPem);
   Serial.println(this->clientCertPem);
   Serial.println(this->clientKeyPem);
+  Serial.println(this->clientId);
 #endif
 
   Serial.printf("Project Id : %s and Device Id : %s\n", this->projectId, this->deviceId);
@@ -483,7 +510,7 @@ boolean BytebeamArduino::setupBytebeamClient() {
 
   Serial.print("Connecting To Bytebeam Cloud : ");
 
-  if(!PubSubClient::connect("BytebeamClient")) {
+  if(!PubSubClient::connect(this->clientId)) {
     Serial.println("ERROR");
     return false;
   }
@@ -491,6 +518,46 @@ boolean BytebeamArduino::setupBytebeamClient() {
   Serial.println("CONNECTED");
 
   return true;
+}
+
+void BytebeamArduino::clearBytebeamClient() {
+
+  /* Clearing up the bytebeam secure wifi client based on the architecture and before this make sure you have
+   * the same secure wifi client object inside the class defination.
+   */
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  this->secureClient.setCACert(NULL);
+  this->secureClient.setCertificate(NULL);
+  this->secureClient.setPrivateKey(NULL);
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  // release the allocated memory :)
+  delete this->rootCA;
+  this->rootCA = NULL;
+
+  // release the allocated memory :)
+  delete this->clientCert;
+  this->clientCert = NULL;
+
+  // release the allocated memory :)
+  delete this->clientKey;
+  this->clientKey = NULL;
+
+  this->secureClient.setBufferSizes(0, 0);
+  this->secureClient.setTrustAnchors(NULL);
+  this->secureClient.setClientRSACert(NULL, NULL);
+#endif
+
+  PubSubClient::setClient(this->secureClient);
+  PubSubClient::setCallback(NULL);
+  PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
+
+  Serial.print("Disconnecting To Bytebeam Cloud : ");
+
+  PubSubClient::disconnect();
+
+  Serial.println("DISCONNECTED");
 }
 
 BytebeamArduino::BytebeamArduino() {
@@ -505,6 +572,7 @@ BytebeamArduino::BytebeamArduino() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
+  this->clientId = NULL;
 
   this->deviceConfigStr = NULL;
 
@@ -531,7 +599,7 @@ boolean BytebeamArduino::begin() {
     return false;
   }
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_FS
+#ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
   if(!readDeviceConfigFile()) {
     Serial.println("begin abort, error while reading the device config file...\n");
     return false;
@@ -562,7 +630,7 @@ boolean BytebeamArduino::begin() {
 
 #if BYTEBEAM_OTA_ENABLE  
   if(BytebeamOTA.otaUpdateFlag) {
-    if(!Bytebeam.publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
+    if(!publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
       Serial.println("failed to publish ota complete status...");
     }
 
@@ -585,7 +653,19 @@ boolean BytebeamArduino::begin() {
   return true;
 }
 
+boolean BytebeamArduino::isBegined() {
+  // return the client status i.e activated or deactivated
+  if(!this->isClientActive) {
+    Serial.println("Bytebeam Client is Deactivated.");
+    return false;
+  } else {
+    Serial.println("Bytebeam Client is Activated.");
+    return true;
+  }
+}
+
 boolean BytebeamArduino::loop() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::loop() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -634,12 +714,14 @@ boolean BytebeamArduino::loop() {
   }
 }
 
-boolean BytebeamArduino::connected() {
+boolean BytebeamArduino::isConnected() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::connected() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
   }
 
+  // return the connection status i.e connected or disconnected
   if(!PubSubClient::connected()) {
     Serial.println("Bytebeam Client is not Connected to the Cloud !");
     return false;
@@ -650,6 +732,7 @@ boolean BytebeamArduino::connected() {
 }
 
 boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::handleActions() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -783,6 +866,7 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
 }
 
 boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::addActionHandler() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -809,6 +893,7 @@ boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actio
 }
 
 boolean BytebeamArduino::removeActionHandler(char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::removeActionHandler() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -840,6 +925,7 @@ boolean BytebeamArduino::removeActionHandler(char* actionName) {
 }
 
 boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::updateActionHandler ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -863,7 +949,33 @@ boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char*
   }
 }
 
+boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
+  // client should be active and if not just log the info to serial and abort :)
+  if(!this->isClientActive) {
+    Serial.println("BytebeamArduino::isActionHandlerThere() ---> bytebeam client is not active yet, begin the bytebeam client");
+    return false;
+  }
+
+  int actionIterator = 0;
+  int targetActionIdx = -1;
+
+  for(actionIterator = 0; actionIterator <= this->actionFuncsHandlerIdx; actionIterator++) {
+    if(!strcmp(this->actionFuncs[actionIterator].name, actionName)) {
+      targetActionIdx = actionIterator;
+    }
+  }
+
+  if(targetActionIdx == -1) {
+    Serial.printf("action : %s not found\n", actionName);
+    return false;
+  } else {
+    Serial.printf("action : %s found at index %d\n", actionName, targetActionIdx);
+    return true;
+  }
+}
+
 boolean BytebeamArduino::printActionHandlerArray() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::printActionHandlerArray() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -885,6 +997,7 @@ boolean BytebeamArduino::printActionHandlerArray() {
 }
 
 boolean BytebeamArduino::resetActionHandlerArray() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::resetActionHandlerArray() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -896,6 +1009,7 @@ boolean BytebeamArduino::resetActionHandlerArray() {
 }
 
 boolean BytebeamArduino::publishActionCompleted(char* actionId) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishActionCompleted() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -917,6 +1031,7 @@ boolean BytebeamArduino::publishActionCompleted(char* actionId) {
 }
 
 boolean BytebeamArduino::publishActionFailed(char* actionId) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishActionFailed() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -938,6 +1053,7 @@ boolean BytebeamArduino::publishActionFailed(char* actionId) {
 }
 
 boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishActionProgress() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -959,6 +1075,7 @@ boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPerce
 }
 
 boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::publishToStream() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -980,10 +1097,16 @@ boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) 
     return false;
   }
 
+#if DEBUG_BYTEBEAM_ARDUINO
+  Serial.println(topic);
+  Serial.println(payload);
+#endif
+
   return publish(topic, payload);
 }
 
 boolean BytebeamArduino::end() {
+  // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
     Serial.println("BytebeamArduino::end() ---> bytebeam client is not active yet, begin the bytebeam client");
     return false;
@@ -1001,35 +1124,26 @@ boolean BytebeamArduino::end() {
   this->caCertPem = NULL;
   this->clientCertPem = NULL;
   this->clientKeyPem = NULL;
+  this->clientId = NULL;
 
   // release the allocated memory :)
   free(this->deviceConfigStr);
   this->deviceConfigStr = NULL;
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-  // release the allocated memory :)
-  delete this->rootCA;
-  this->rootCA = NULL;
-
-  // release the allocated memory :)
-  delete this->clientCert;
-  this->clientCert = NULL;
-
-  // release the allocated memory :)
-  delete this->clientKey;
-  this->clientKey = NULL;
-#endif
+  // disable the OTA if it was enabled
+  if(this->isOTAEnable) {
+    disableOTA();
+  }
 
   initActionHandlerArray();
 
-  PubSubClient::disconnect();
+  clearBytebeamClient();
 
   // log bytebeam client duration to serial :)
   Serial.print("Bytebeam Client Duration : ");
   Serial.print(BytebeamTime.durationMillis);
   Serial.println("ms");
 
-  this->isOTAEnable = false;
   this->isClientActive = false;
 
   Serial.println("Bytebeam Client Deactivated Successfully !\n");
@@ -1039,80 +1153,104 @@ boolean BytebeamArduino::end() {
 
 #if BYTEBEAM_OTA_ENABLE
   static int handleFirmwareUpdate(char* otaPayloadStr, char* actionId) {
-    char constructedUrl[BYTEBEAM_OTA_URL_STR_LEN] = { 0 };
+    //
+    //  Handle The Firmware Update Here
+    //
 
-    if(!BytebeamOTA.parseOTAJson(otaPayloadStr, constructedUrl)) {
-      Serial.println("ota abort, error while parsing the ota json...");
-      return false;
+    if(!BytebeamOTA.updateFirmware(otaPayloadStr, actionId)) {
+      Serial.println("Firmware Upgrade Failed.");
+
+      // clear OTA information from RAM
+      BytebeamOTA.clearOTAInfoFromRAM();
+
+      // publish firmware update failure message to cloud
+      if(!Bytebeam.publishActionFailed(actionId)) {
+        Serial.println("failed to publish negative response for firmware upgarde failure");
+      }
+
+      return -1;
+    } else {
+      Serial.println("Firmware Upgrade Success.");
+
+      // save the OTA information in flash
+      BytebeamOTA.saveOTAInfo();
+
+      // reboot the chip to boot the new firmware
+      rebootESPWithReason("RESTART: Booting New Firmware !");
+
+      return 0;
     }
-
-    if(!BytebeamOTA.performOTA(actionId, constructedUrl)) {
-      Serial.println("ota abort, error while performing https ota...");
-      return false;
-    }
-
-    return 0;
   }
 
   boolean BytebeamArduino::enableOTA() {
+    // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
       Serial.println("BytebeamArduino::enableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
       return false;
     }
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-    BytebeamOTA.secureOTAClient.setCACert(this->caCertPem);
-    BytebeamOTA.secureOTAClient.setCertificate(this->clientCertPem);
-    BytebeamOTA.secureOTAClient.setPrivateKey(this->clientKeyPem);
-  #endif
+    // setup the secure OTA client
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+      BytebeamOTA.setupSecureOTAClient(this->caCertPem, this->clientCertPem, this->clientKeyPem);
+    #endif
 
-  #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-    BytebeamOTA.secureOTAClient.setBufferSizes(2048, 2048);
-    BytebeamOTA.secureOTAClient.setTrustAnchors(this->rootCA);
-    BytebeamOTA.secureOTAClient.setClientRSACert(this->clientCert, this->clientKey);
-  #endif
+    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+      BytebeamOTA.setupSecureOTAClient(this->rootCA, this->clientCert, this->clientKey);
+    #endif
 
-    if(!Bytebeam.addActionHandler(handleFirmwareUpdate, "update_firmware")) {
-      Serial.println("OTA enable fail !");
+    // add the OTA action handler
+    if(!addActionHandler(handleFirmwareUpdate, "update_firmware")) {
+      Serial.println("OTA Enable Failed.");
       return false;
     }
 
     this->isOTAEnable = true;
-    Serial.println("OTA enable success !");
+    Serial.println("OTA Enable Success.");
 
     return true;
   }
 
+  boolean BytebeamArduino::isOTAEnabled() {
+    // client should be active and if not just log the info to serial and abort :)
+    if(!this->isClientActive) {
+      Serial.println("BytebeamArduino::isOTAEnabled() ---> bytebeam client is not active yet, begin the bytebeam client");
+      return false;
+    }
+
+    // return the OTA status i.e enabled or disabled
+    if(!this->isOTAEnable) {
+      Serial.println("OTA is Disabled.");
+      return false;
+    } else {
+      Serial.println("OTA is Enabled.");
+      return true;
+    }
+  }
+
   boolean BytebeamArduino::disableOTA() {
+    // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
       Serial.println("BytebeamArduino::disableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
       return false;
     }
 
+    // before going ahead make sure OTA is enabled
     if(!this->isOTAEnable) {
       Serial.println("BytebeamArduino::disableOTA() ---> OTA is not enabled yet, enable the OTA");
       return false;
     }
 
-    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-      BytebeamOTA.secureOTAClient.setCACert(NULL);
-      BytebeamOTA.secureOTAClient.setCertificate(NULL);
-      BytebeamOTA.secureOTAClient.setPrivateKey(NULL);
-    #endif
+    // clear the secure OTA client
+    BytebeamOTA.clearSecureOTAClient();
 
-    #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
-      BytebeamOTA.secureOTAClient.setBufferSizes(0, 0);
-      BytebeamOTA.secureOTAClient.setTrustAnchors(NULL);
-      BytebeamOTA.secureOTAClient.setClientRSACert(NULL, NULL);
-    #endif
-
+    // remove the OTA action handler
     if(!removeActionHandler("update_firmware")) {
-      Serial.println("OTA disable fail !");
+      Serial.println("OTA Disable Failed.");
       return false;
     }
 
     this->isOTAEnable = false;
-    Serial.println("OTA disable success !");
+    Serial.println("OTA Disable Success.");
 
     return true;
   }

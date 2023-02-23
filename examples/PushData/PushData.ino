@@ -11,66 +11,8 @@ const long  gmtOffset_sec = 19800;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 
-// function to get the time 
-unsigned long long getEpochMillis() {
-  time_t now;
-  struct tm timeinfo;
-
-  // get the current time i.e make sure the device is in sync with the ntp server
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("failed to obtain time");
-    return 0;
-  }
-
-  // get the epoch time
-  time(&now);
-
-  // generate the epoch millis
-  unsigned long long timeMillis = ((unsigned long long)now * 1000) + (millis() % 1000);
-
-  return timeMillis;
-}
-
-// function to publish payload to device shadow
-boolean publishToDeviceShadow() {
-  static int sequence = 0;
-  unsigned long long milliseconds = 0;
-  char deviceStatus[200] = "";
-  char deviceShadowStream[] = "device_shadow";
-
-  const char* payload = "";
-  String deviceShadowStr = "";
-  StaticJsonDocument<1024> doc;
-
-  // get the current epoch millis
-  milliseconds = getEpochMillis();
-
-  // make sure you got the millis
-  if(milliseconds == 0) {
-    Serial.println("failed to get epoch millis");
-    return false;
-  }
-
-  // increment the sequence counter
-  sequence++;
-
-  // generate the device status message string
-  sprintf(deviceStatus, "Device Status : %s !", "Working");
-
-  JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
-  JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
-
-  deviceShadowJsonObj_1["timestamp"] = milliseconds;
-  deviceShadowJsonObj_1["sequence"]  = sequence;
-  deviceShadowJsonObj_1["Status"]    = deviceStatus;
-  
-  serializeJson(deviceShadowJsonArray, deviceShadowStr);
-  payload = deviceShadowStr.c_str();
-
-  Serial.printf("publishing %s to %s\n", payload, deviceShadowStream);
-
-  return Bytebeam.publishToStream(deviceShadowStream, payload);
-}
+// device status
+char deviceStatus[200] = "";
 
 // function to setup the wifi with predefined credentials
 void setupWifi() {
@@ -111,6 +53,69 @@ void syncTimeFromNtp() {
   Serial.println();
 }
 
+// function to get the time 
+unsigned long long getEpochMillis() {
+  time_t now;
+  struct tm timeinfo;
+
+  // get the current time i.e make sure the device is in sync with the ntp server
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("failed to obtain time");
+    return 0;
+  }
+
+  // get the epoch time
+  time(&now);
+
+  // generate the epoch millis
+  unsigned long long timeMillis = ((unsigned long long)now * 1000) + (millis() % 1000);
+
+  return timeMillis;
+}
+
+// function to publish payload to device shadow
+boolean publishToDeviceShadow() {
+  static int sequence = 0;
+  unsigned long long milliseconds = 0;
+  char deviceShadowStream[] = "device_shadow";
+
+  const char* payload = "";
+  String deviceShadowStr = "";
+  StaticJsonDocument<1024> doc;
+
+  // get the current epoch millis
+  milliseconds = getEpochMillis();
+
+  // make sure you got the millis
+  if(milliseconds == 0) {
+    Serial.println("failed to get epoch millis");
+    return false;
+  }
+
+  // increment the sequence counter
+  sequence++;
+
+  // get the connection status
+  bool connectionStatus = Bytebeam.isConnected();
+
+  // get the device status
+  sprintf(deviceStatus, "Device Status : %s !", connectionStatus? "Connected" : "Disconnected");
+
+  JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
+  JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
+
+  deviceShadowJsonObj_1["timestamp"] = milliseconds;
+  deviceShadowJsonObj_1["sequence"]  = sequence;
+  deviceShadowJsonObj_1["Status"]    = deviceStatus;
+  
+  serializeJson(deviceShadowJsonArray, deviceShadowStr);
+  payload = deviceShadowStr.c_str();
+
+  Serial.printf("publishing %s to %s\n", payload, deviceShadowStream);
+
+  return Bytebeam.publishToStream(deviceShadowStream, payload);
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -119,16 +124,22 @@ void setup() {
   setupWifi();
   syncTimeFromNtp();
   
+  // begin the bytebeam client
   Bytebeam.begin();
-
-  if(!publishToDeviceShadow()) {
-    Serial.println("Failed to publish device status to device shadow");
-    return;
-  }
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // bytebeam client loop
   Bytebeam.loop();
-  delay(5000);
+
+  // publish device status to device shadow
+  if(!publishToDeviceShadow()) {
+    Serial.println("Failed to publish device status to device shadow");
+    return;
+  }
+
+  // hold on execution for some time
+  delay(10000);
 }

@@ -10,30 +10,32 @@
     #include <FS.h>
     #include <FFat.h>
     #include <SPIFFS.h>
+    #include <LittleFS.h>
     #include <WiFiClientSecure.h>
     #include <HTTPUpdate.h>
     #include <Preferences.h>
 
     /* ESP32 architecture dependent defines */
     #define BYTEBEAM_ARDUINO_ARCH_ESP32
-    #define BYTEBEAM_ARDUINO_ARCH_FS
-    #define BYTEBEAM_ARDUINO_ARCH_FATFS
-    #define BYTEBEAM_ARDUINO_ARCH_SPIFFS
-    #define BYTEBEAM_ARDUINO_ARCH_LITTLEFS
-    #define BYTEBEAM_ARDUINO_ARCH_SD
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FATFS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
 #elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
     /* ESP8266 architecture dependent includes */
     #include <FS.h>
+    #include <LittleFS.h>
     #include <WiFiClientSecureBearSSL.h>
     #include <ESP8266httpUpdate.h>
     #include <EEPROM.h>
 
     /* ESP8266 architecture dependent defines */
     #define BYTEBEAM_ARDUINO_ARCH_ESP8266
-    #define BYTEBEAM_ARDUINO_ARCH_FS
-    #define BYTEBEAM_ARDUINO_ARCH_SPIFFS
-    #define BYTEBEAM_ARDUINO_ARCH_LITTLEFS
-    #define BYTEBEAM_ARDUINO_ARCH_SD
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
+    #define BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
 #endif
 
 #endif /* BYTEBEAM_ARCH_DEFINES_H */
