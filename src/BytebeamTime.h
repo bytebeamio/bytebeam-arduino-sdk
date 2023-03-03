@@ -1,9 +1,7 @@
 #ifndef BYTEBEAM_TIME_H
 #define BYTEBEAM_TIME_H
 
-#include <Arduino.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
+#include "BytebeamArduinoDefines.h"
 
 class BytebeamTime {
 public:
@@ -14,6 +12,10 @@ public:
     ~BytebeamTime();
 
     // public functions
+    #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+        void setModemInstance(TinyGsm* modem);
+    #endif
+
     boolean begin();
     boolean getEpochMillis();
     boolean end();
@@ -24,6 +26,17 @@ public:
     unsigned long long nowMillis;
     unsigned long long endMillis;
     unsigned long long durationMillis;
+
+private:
+    // private variables
+    #ifdef BYTEBEAM_ARDUINO_USE_WIFI
+        WiFiUDP udpClient;
+        NTPClient timeClient;
+    #endif
+
+    #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+        TinyGsm* modem;
+    #endif
 };
 
 #endif /* BYTEBEAM_TIME_H */

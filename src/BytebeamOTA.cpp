@@ -1,5 +1,7 @@
 #include "BytebeamOTA.h"
 
+#if BYTEBEAM_OTA_ENABLE
+
 static char tempOtaActionId[BYTEBEAM_OTA_ACTION_ID_STR_LEN] = "";
 
 void BytebeamUpdateStarted() {
@@ -328,3 +330,4 @@ boolean BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
 
   return true;
 }
+#endif

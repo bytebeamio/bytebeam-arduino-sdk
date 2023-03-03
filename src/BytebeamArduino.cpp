@@ -1,5 +1,9 @@
 #include "BytebeamArduino.h"
 
+#ifndef FILE_READ
+#define FILE_READ "r"
+#endif
+
 /* This object will represent the Log library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any Logging related stuff this guy is for you.
  */
@@ -13,7 +17,9 @@ static BytebeamTime BytebeamTime;
 /* This object will represent the OTA library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any OTA stuff this guy is for you.
  */
-static BytebeamOTA BytebeamOTA;
+#if BYTEBEAM_OTA_ENABLE
+  static BytebeamOTA BytebeamOTA;
+#endif
 
 /* This flag will prevent the use of handle actions api directly as this api is meant for internal usage
  * If you really want to call the handle actions api directly, probably you have to step into debug mode 
@@ -560,7 +566,11 @@ void BytebeamArduino::clearBytebeamClient() {
   Serial.println("DISCONNECTED");
 }
 
-BytebeamArduino::BytebeamArduino() {
+BytebeamArduino::BytebeamArduino()
+  #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+    : secureClient(&gsmClient)
+  #endif
+{
   //
   // Initailizing all the variables with default values here
   //
@@ -588,16 +598,11 @@ BytebeamArduino::~BytebeamArduino() {
   //
 
   Serial.println("I am BytebeamArduino::~BytebeamArduino()");
-} 
+}
 
-boolean BytebeamArduino::begin() {
+boolean BytebeamArduino::init() {
   // It's much better to pump up architecture inforamtion in the very beginning
   printArchitectureInfo();
-
-  if(!BytebeamTime.begin()) {
-    Serial.println("begin abort, time client begin failed...\n");
-    return false;
-  }
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
   if(!readDeviceConfigFile()) {
@@ -652,6 +657,56 @@ boolean BytebeamArduino::begin() {
 
   return true;
 }
+
+#ifdef BYTEBEAM_ARDUINO_USE_WIFI
+  boolean BytebeamArduino::begin() {
+    // fix : ensure wifi status before using ntp methods o/w they will give hard fault
+    if(WiFi.status() != WL_CONNECTED) {
+      Serial.println("begin abort, could not find WiFi connectivity");
+      return false;
+    }
+
+    // so we got the wifi conectivity at this point
+    // before initializing the core sdk make sure time client is working fine with wifi
+    if(!BytebeamTime.begin()) {
+      Serial.println("begin abort, time client begin failed...\n");
+      return false;
+    }
+
+    // initialize the core sdk and give back the status to the user
+    bool result = init();
+
+    return result;
+  }
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_USE_MODEM
+  boolean BytebeamArduino::begin(TinyGsm* modem) {
+    // fix : ensure modem instance before using modem class methods o/w they will give hard fault
+    if(!modem) {
+      Serial.println("begin abort, failed to get modem instance");
+      return false;
+    }
+
+    // initiaize the gsm client with the modem instance
+    this->gsmClient.init(modem);
+
+    // share the modem instance with the time module
+    BytebeamTime.setModemInstance(modem);
+
+    // so we got the modem conectivity at this point
+    // before initializing the core sdk make sure time client is working fine with modem
+    if(!BytebeamTime.begin()) {
+      Serial.println("begin abort, time client begin failed...\n");
+      return false;
+    }
+
+    // initialize the core sdk and give back the status to the user
+    bool result = init();
+
+    return result;
+  }
+#endif
 
 boolean BytebeamArduino::isBegined() {
   // return the client status i.e activated or deactivated
@@ -1132,7 +1187,9 @@ boolean BytebeamArduino::end() {
 
   // disable the OTA if it was enabled
   if(this->isOTAEnable) {
-    disableOTA();
+    #if BYTEBEAM_OTA_ENABLE
+      disableOTA();
+    #endif
   }
 
   initActionHandlerArray();

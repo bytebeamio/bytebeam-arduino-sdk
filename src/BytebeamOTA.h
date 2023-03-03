@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "BytebeamArduino.h"
-#include "BytebeamArchDefines.h"
+#include "BytebeamArduinoDefines.h"
 
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_OTA false
@@ -46,8 +46,10 @@ private:
 
     // private variables
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-        WiFiClientSecure secureOTAClient;
-        HTTPUpdate& BytebeamUpdate =  httpUpdate;
+        #ifdef BYTEBEAM_ARDUINO_USE_WIFI
+            WiFiClientSecure secureOTAClient;
+            HTTPUpdate& BytebeamUpdate =  httpUpdate;
+        #endif
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266

@@ -1,9 +1,10 @@
 #include "BytebeamTime.h"
 
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
-
-BytebeamTime::BytebeamTime() {
+BytebeamTime::BytebeamTime()
+    #ifdef BYTEBEAM_ARDUINO_USE_WIFI
+        : timeClient(udpClient)
+    #endif
+{
     //
     // Initailizing all the variables with default values here
     //
@@ -23,7 +24,14 @@ BytebeamTime::~BytebeamTime() {
     Serial.println("I am BytebeamTime::~BytebeamTime()");
 }
 
+#ifdef BYTEBEAM_ARDUINO_USE_MODEM
+    void BytebeamTime::setModemInstance(TinyGsm* modem) {
+        this->modem = modem;
+    }
+#endif
+
 boolean BytebeamTime::begin() {
+#ifdef BYTEBEAM_ARDUINO_USE_WIFI
     // begin the time client
     timeClient.begin();
 
@@ -33,6 +41,7 @@ boolean BytebeamTime::begin() {
 
     // set the ntp server update interval to 30s
     timeClient.setUpdateInterval(30);
+#endif
 
     // get the epoch millis
     if(!getEpochMillis()) {
@@ -53,11 +62,40 @@ boolean BytebeamTime::begin() {
 }
 
 boolean BytebeamTime::getEpochMillis() {
+#ifdef BYTEBEAM_ARDUINO_USE_WIFI
     // update the time client
     timeClient.update();
 
     // get the epcoh time from the server
     unsigned long time  = timeClient.getEpochTime();
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_USE_MODEM
+    // will give the time in this format "YY/MM/DD,HH:MM:SS"
+    String dateTime = this->modem->getGSMDateTime(DATE_FULL);
+
+    struct tm tm;
+    memset(&tm, 0, sizeof(tm));
+
+    tm.tm_year = 2000 + dateTime.substring(0,2).toInt() - 1900;
+    tm.tm_mon  = dateTime.substring(3,5).toInt() - 1;
+    tm.tm_mday = dateTime.substring(6,8).toInt();
+
+    // Serial.println(tm.tm_year);
+    // Serial.println(tm.tm_mon);
+    // Serial.println(tm.tm_mday);
+
+    tm.tm_hour = dateTime.substring(9,11).toInt();
+    tm.tm_min  = dateTime.substring(12,14).toInt();
+    tm.tm_sec  = dateTime.substring(15,17).toInt();
+
+    // Serial.println(tm.tm_hour);
+    // Serial.println(tm.tm_min);
+    // Serial.println(tm.tm_sec);
+
+    time_t time;
+    time = mktime(&tm) - 19800;   // GMT +5:30h
+#endif
 
     // calculate epoch millis
     unsigned long long timeMillis = ((unsigned long long)time * 1000) + (millis() % 1000);
@@ -73,6 +111,8 @@ boolean BytebeamTime::getEpochMillis() {
 
     // update the prev epoch millis
     this->prevMillis = this->nowMillis;
+
+    // Serial.println(this->nowMillis);
 
     return true;
 }
@@ -90,8 +130,10 @@ boolean BytebeamTime::end() {
     // calculate the duration epoch millis
     this->durationMillis = this->endMillis - this->beginMillis;
     
+#ifdef BYTEBEAM_ARDUINO_USE_WIFI
     // end the time client
     timeClient.end();
+#endif
 
     // reset the time variables except durationMillis i.e we need to pump up the duration
     this->beginMillis = 0;

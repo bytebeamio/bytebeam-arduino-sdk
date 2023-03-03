@@ -7,7 +7,7 @@
 #include "BytebeamLog.h"
 #include "BytebeamTime.h"
 #include "BytebeamOTA.h"
-#include "BytebeamArchDefines.h"
+#include "BytebeamArduinoDefines.h"
 
 /**
  * @enum deviceConfigFileSystem
@@ -71,7 +71,14 @@ public:
     ~BytebeamArduino();
 
     // public functions
-    boolean begin();
+    #ifdef BYTEBEAM_ARDUINO_USE_WIFI
+        boolean begin();
+    #endif
+
+    #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+        boolean begin(TinyGsm* modem);
+    #endif
+
     boolean isBegined();
     boolean loop();
     boolean isConnected();
@@ -96,7 +103,8 @@ public:
     boolean end();
     
 private:
-    // private functions 
+    // private functions
+    boolean init();
     void printArchitectureInfo();
     void initActionHandlerArray();
     boolean subscribe(const char* topic, uint8_t qos);
@@ -126,7 +134,14 @@ private:
     bool isOTAEnable;
 
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
-        WiFiClientSecure secureClient;
+        #ifdef BYTEBEAM_ARDUINO_USE_WIFI
+            WiFiClientSecure secureClient;
+        #endif
+
+        #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+            TinyGsmClient gsmClient;
+            SSLClient secureClient;
+        #endif
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
