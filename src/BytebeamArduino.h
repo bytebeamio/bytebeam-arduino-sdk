@@ -38,7 +38,13 @@ typedef enum {
 #define BYTEBEAM_NUMBER_OF_ACTIONS 10
 
 /* This macro is used to specify the file system used for provisioning the device */
-#define DEVICE_CONFIG_FILE_SYSTEM SPIFFS_FILE_SYSTEM
+#if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
+    // defaults to spiffs for esp32 arch (usual filesystem)
+    #define DEVICE_CONFIG_FILE_SYSTEM SPIFFS_FILE_SYSTEM
+#elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
+    // defaults to littlefs for esp8266 arch (community recommended)
+    #define DEVICE_CONFIG_FILE_SYSTEM LITTLEFS_FILE_SYSTEM
+#endif
 
 /* This macro is used to specify the name of the device config file */
 #define DEVICE_CONFIG_FILE_NAME "/device_config.json"
