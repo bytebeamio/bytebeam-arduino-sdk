@@ -239,14 +239,14 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 }
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
-  boolean BytebeamArduino::readDeviceConfigFile() {
+  boolean BytebeamArduino::readDeviceConfigFile(const deviceConfigFileSystem fileSystem, const char* fileName) {
 
     /* This file system pointer will store the address of the selected file system, So after begin and end operations
      * we can utilize this file system pointer to do the file operations.
      */
     fs::FS* ptrToFS = NULL;
 
-    switch(DEVICE_CONFIG_FILE_SYSTEM) {
+    switch(fileSystem) {
 
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
@@ -320,7 +320,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         break;
     }
 
-    const char* path = DEVICE_CONFIG_FILE_NAME;
+    const char* path = fileName;
     Serial.printf("Reading file : %s\n", path);
 
     File file = ptrToFS->open(path, FILE_READ);
@@ -566,46 +566,12 @@ void BytebeamArduino::clearBytebeamClient() {
   Serial.println("DISCONNECTED");
 }
 
-BytebeamArduino::BytebeamArduino()
-  #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-    : secureClient(&gsmClient)
-  #endif
-{
-  //
-  // Initailizing all the variables with default values here
-  //
-
-  this->mqttPort = -1;
-  this->mqttBrokerUrl = NULL;
-  this->deviceId = NULL;
-  this->projectId = NULL;
-  this->caCertPem = NULL;
-  this->clientCertPem = NULL;
-  this->clientKeyPem = NULL;
-  this->clientId = NULL;
-
-  this->deviceConfigStr = NULL;
-
-  initActionHandlerArray();
-
-  this->isOTAEnable = false;
-  this->isClientActive = false;
-}
-
-BytebeamArduino::~BytebeamArduino() {
-  //
-  // Nothing much to do here, just print the log to serial :)
-  //
-
-  Serial.println("I am BytebeamArduino::~BytebeamArduino()");
-}
-
-boolean BytebeamArduino::init() {
+boolean BytebeamArduino::init(const deviceConfigFileSystem fileSystem, const char* fileName) {
   // It's much better to pump up architecture inforamtion in the very beginning
   printArchitectureInfo();
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
-  if(!readDeviceConfigFile()) {
+  if(!readDeviceConfigFile(fileSystem, fileName)) {
     Serial.println("begin abort, error while reading the device config file...\n");
     return false;
   }
@@ -658,8 +624,42 @@ boolean BytebeamArduino::init() {
   return true;
 }
 
+BytebeamArduino::BytebeamArduino()
+  #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+    : secureClient(&gsmClient)
+  #endif
+{
+  //
+  // Initailizing all the variables with default values here
+  //
+
+  this->mqttPort = -1;
+  this->mqttBrokerUrl = NULL;
+  this->deviceId = NULL;
+  this->projectId = NULL;
+  this->caCertPem = NULL;
+  this->clientCertPem = NULL;
+  this->clientKeyPem = NULL;
+  this->clientId = NULL;
+
+  this->deviceConfigStr = NULL;
+
+  initActionHandlerArray();
+
+  this->isOTAEnable = false;
+  this->isClientActive = false;
+}
+
+BytebeamArduino::~BytebeamArduino() {
+  //
+  // Nothing much to do here, just print the log to serial :)
+  //
+
+  Serial.println("I am BytebeamArduino::~BytebeamArduino()");
+}
+
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
-  boolean BytebeamArduino::begin() {
+  boolean BytebeamArduino::begin(const deviceConfigFileSystem fileSystem, const char* fileName) {
     // fix : ensure wifi status before using ntp methods o/w they will give hard fault
     if(WiFi.status() != WL_CONNECTED) {
       Serial.println("begin abort, could not find WiFi connectivity");
@@ -674,14 +674,14 @@ boolean BytebeamArduino::init() {
     }
 
     // initialize the core sdk and give back the status to the user
-    bool result = init();
+    bool result = init(fileSystem, fileName);
 
     return result;
   }
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-  boolean BytebeamArduino::begin(TinyGsm* modem) {
+  boolean BytebeamArduino::begin(TinyGsm* modem, const deviceConfigFileSystem fileSystem, const char* fileName) {
     // fix : ensure modem instance before using modem class methods o/w they will give hard fault
     if(!modem) {
       Serial.println("begin abort, failed to get modem instance");
@@ -702,7 +702,7 @@ boolean BytebeamArduino::init() {
     }
 
     // initialize the core sdk and give back the status to the user
-    bool result = init();
+    bool result = init(fileSystem, fileName);
 
     return result;
   }

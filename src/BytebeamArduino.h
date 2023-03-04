@@ -9,25 +9,6 @@
 #include "BytebeamOTA.h"
 #include "BytebeamArduinoDefines.h"
 
-/**
- * @enum deviceConfigFileSystem
- * This sturct contains the available file systems that can be used for provisioning the device
- * @var deviceConfigFileSystem::FATFS_FILE_SYSTEM
- * Use FATFS file system for provisioning the device
- * @var deviceConfigFileSystem::SPIFFS_FILE_SYSTEM
- * Use SPIFFS file system for provisioning the device
- * @var deviceConfigFileSystem::LITTLEFS_FILE_SYSTEM
- * Use LITTLEFS file system for provisioning the device
- * @var deviceConfigFileSystem::SD_FILE_SYSTEM
- * Use SD file system for provisioning the device
- */
-typedef enum {
-    FATFS_FILE_SYSTEM,
-    SPIFFS_FILE_SYSTEM,
-    LITTLEFS_FILE_SYSTEM,
-    SD_FILE_SYSTEM
-} deviceConfigFileSystem;
-
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_ARDUINO false
 
@@ -55,21 +36,40 @@ typedef enum {
 /* This macro is used to enable the OTA i.e disable this flag to completely remove OTA from compilation phase thereby saving flash size too */
 #define BYTEBEAM_OTA_ENABLE true
 
-/**
- * @struct actionFunctionsHandler
- * This sturct contains name and function pointer for particular action 
- * @var actionFunctionsHandler::name
- * Name of particular action 
- * @var actionFunctionsHandler::func
- * Pointer to action handler function for particular action
- */
-typedef struct {
-    const char* name;
-    int (*func)(char* args, char* actionId);
-} actionFunctionsHandler;
-
 class BytebeamArduino : private PubSubClient, public BytebeamLog {
 public:
+    /**
+     * @enum deviceConfigFileSystem
+     * This sturct contains the available file systems that can be used for provisioning the device
+     * @var deviceConfigFileSystem::FATFS_FILE_SYSTEM
+     * Use FATFS file system for provisioning the device
+     * @var deviceConfigFileSystem::SPIFFS_FILE_SYSTEM
+     * Use SPIFFS file system for provisioning the device
+     * @var deviceConfigFileSystem::LITTLEFS_FILE_SYSTEM
+     * Use LITTLEFS file system for provisioning the device
+     * @var deviceConfigFileSystem::SD_FILE_SYSTEM
+     * Use SD file system for provisioning the device
+     */
+    typedef enum {
+        FATFS_FILE_SYSTEM,
+        SPIFFS_FILE_SYSTEM,
+        LITTLEFS_FILE_SYSTEM,
+        SD_FILE_SYSTEM
+    } deviceConfigFileSystem;
+
+    /**
+     * @struct actionFunctionsHandler
+     * This sturct contains name and function pointer for particular action
+     * @var actionFunctionsHandler::name
+     * Name of particular action
+     * @var actionFunctionsHandler::func
+     * Pointer to action handler function for particular action
+     */
+    typedef struct {
+        const char* name;
+        int (*func)(char* args, char* actionId);
+    } actionFunctionsHandler;
+
     // contructor
     BytebeamArduino();
 
@@ -78,11 +78,14 @@ public:
 
     // public functions
     #ifdef BYTEBEAM_ARDUINO_USE_WIFI
-        boolean begin();
+        boolean begin(  const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
+                        const char* fileName = DEVICE_CONFIG_FILE_NAME);
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-        boolean begin(TinyGsm* modem);
+        boolean begin(  TinyGsm* modem,
+                        const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
+                        const char* fileName = DEVICE_CONFIG_FILE_NAME);
     #endif
 
     boolean isBegined();
@@ -110,7 +113,6 @@ public:
     
 private:
     // private functions
-    boolean init();
     void printArchitectureInfo();
     void initActionHandlerArray();
     boolean subscribe(const char* topic, uint8_t qos);
@@ -119,10 +121,11 @@ private:
     boolean subscribeToActions();
     boolean unsubscribeToActions();
     boolean publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
-    boolean readDeviceConfigFile();
+    boolean readDeviceConfigFile(const deviceConfigFileSystem fileSystem, const char* fileName);
     boolean parseDeviceConfigFile();
     boolean setupBytebeamClient();
     void clearBytebeamClient();
+    boolean init(const deviceConfigFileSystem fileSystem, const char* fileName);
 
     // private variables
     int mqttPort;
