@@ -121,7 +121,8 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
-      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
+      // Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
+      Serial.printf("HTTP_UPDATE_FAILED");
       break;
 
     case HTTP_UPDATE_NO_UPDATES:
@@ -140,7 +141,11 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   }
 }
 
-BytebeamOTA::BytebeamOTA() {
+BytebeamOTA::BytebeamOTA()
+  #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+    : secureOTAClient(&gsmOTAClient)
+  #endif
+{
   //
   // Initailizing all the variables with default values here
   //
@@ -156,6 +161,13 @@ BytebeamOTA::~BytebeamOTA() {
 
   Serial.println("I am BytebeamOTA::~BytebeamOTA()");
 }
+
+#ifdef BYTEBEAM_ARDUINO_USE_MODEM
+  void BytebeamOTA::setupGsmClient(TinyGsm* modem) {
+    // initiaize the gsm client with the modem instance
+    this->gsmOTAClient.init(modem, 1);
+  }
+#endif
 
 void BytebeamOTA::saveOTAInfo() {
 
@@ -330,4 +342,5 @@ boolean BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
 
   return true;
 }
-#endif
+
+#endif /* BYTEBEAM_OTA_ENABLE */

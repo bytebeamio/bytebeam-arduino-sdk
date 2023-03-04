@@ -41,6 +41,7 @@
         #include <time.h>
         #include <TinyGsmClient.h>
         #include <SSLClient.h>
+        #include "BytebeamHTTPUpdate.h"
     #endif
 #elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
     // ESP8266 architecture dependent defines

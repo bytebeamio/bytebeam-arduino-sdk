@@ -27,6 +27,10 @@ public:
     ~BytebeamOTA();
 
     // public functions
+    #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+        void setupGsmClient(TinyGsm* modem);
+    #endif
+
     void saveOTAInfo();
     void retrieveOTAInfo();
     void clearOTAInfoFromFlash();
@@ -49,6 +53,12 @@ private:
         #ifdef BYTEBEAM_ARDUINO_USE_WIFI
             WiFiClientSecure secureOTAClient;
             HTTPUpdate& BytebeamUpdate =  httpUpdate;
+        #endif
+
+        #ifdef BYTEBEAM_ARDUINO_USE_MODEM
+            TinyGsmClient gsmOTAClient;
+            SSLClient secureOTAClient;
+            BytebeamHTTPUpdate& BytebeamUpdate =  BytebeamhttpUpdate;
         #endif
     #endif
 

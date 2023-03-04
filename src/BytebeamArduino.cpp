@@ -689,10 +689,13 @@ BytebeamArduino::~BytebeamArduino() {
     }
 
     // initiaize the gsm client with the modem instance
-    this->gsmClient.init(modem);
+    this->gsmClient.init(modem, 0);
 
     // share the modem instance with the time module
     BytebeamTime.setModemInstance(modem);
+
+    // setup the gsm OTA client
+    BytebeamOTA.setupGsmClient(modem);
 
     // so we got the modem conectivity at this point
     // before initializing the core sdk make sure time client is working fine with modem
