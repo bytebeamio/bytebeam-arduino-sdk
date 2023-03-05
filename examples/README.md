@@ -1,13 +1,6 @@
-## Examples
+## BytebeamArduino Examples
 
-This section includes some basic skecthes to get you started with the **BytebeamArduino**
+Let's get started with the **BytebeamArduino**
 
 - Provisioning
-    - SPIFFSProvisioning
-    - FATFSProvisioning
-- SetupClient 
-- ToggleLED
-- PushData
-- PublishChipTemperature
-- UpdateConfig
-- BasicOTA
+- ESP32
