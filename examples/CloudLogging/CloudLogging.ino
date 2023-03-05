@@ -113,6 +113,12 @@ void setup() {
   // disable cloud logging for your device
   // Bytebeam.disableCloudLogging();
 
+  // get the log stream name
+  // char* log_stream_name = Bytebeam.getLogStream();
+
+  // configure the log stream if needed, defaults to "logs"
+  // Bytebeam.setLogStream("device_logs");
+
   // get the bytebeam log level
   // int current_log_level = Bytebeam.getLogLevel();
 

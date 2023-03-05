@@ -36,7 +36,8 @@
 /* This macro is used to enable the OTA i.e disable this flag to completely remove OTA from compilation phase thereby saving flash size too */
 #define BYTEBEAM_OTA_ENABLE true
 
-class BytebeamArduino : private PubSubClient, public BytebeamLog {
+class BytebeamArduino : private PubSubClient,
+                        public BytebeamLog {
 public:
     /**
      * @enum deviceConfigFileSystem

@@ -4,11 +4,6 @@
 #define FILE_READ "r"
 #endif
 
-/* This object will represent the Log library, We will be exposing the necessary functionality and info
- * for the usage, If you want to do any Logging related stuff this guy is for you.
- */
-static BytebeamLog BytebeamLog;
-
 /* This object will represent the Time library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any Timing related stuff this guy is for you.
  */
@@ -202,8 +197,8 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
   // get the current epoch millis
   if(!BytebeamTime.getEpochMillis()) {
-      Serial.println("failed to get epoch millis");
-      return false;
+    Serial.println("failed to get epoch millis");
+    return false;
   }
 
   sequence++;
@@ -673,6 +668,9 @@ BytebeamArduino::~BytebeamArduino() {
       return false;
     }
 
+    // share the time instance with the log module
+    BytebeamLog::setTimeInstance(&BytebeamTime);
+
     // initialize the core sdk and give back the status to the user
     bool result = init(fileSystem, fileName);
 
@@ -703,6 +701,9 @@ BytebeamArduino::~BytebeamArduino() {
       Serial.println("begin abort, time client begin failed...\n");
       return false;
     }
+
+    // share the time instance with the log module
+    BytebeamLog::setTimeInstance(&BytebeamTime);
 
     // initialize the core sdk and give back the status to the user
     bool result = init(fileSystem, fileName);

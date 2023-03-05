@@ -3,6 +3,10 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "BytebeamTime.h"
+
+/* This macro is used to specify the maximum length of bytebeam log stream string */
+#define BYTEBEAM_LOG_STREAM_STR_LEN 20
 
 typedef enum {
     BYTEBEAM_LOG_LEVEL_NONE,
@@ -35,6 +39,9 @@ public:
     boolean isCloudLoggingEnabled();
     void disableCloudLogging();
 
+    void setLogStream(char* stream);
+    char* getLogStream();
+
     void setLogLevel(bytebeamLogLevel_t level);
     bytebeamLogLevel_t getLogLevel();
 
@@ -58,6 +65,9 @@ public:
     void logVerboseln(const char* tag, const char* message);
     void logVerbosef(const char* tag, const char* fmt, ...);
 
+protected :
+    void setTimeInstance(BytebeamTime* Time);
+
 private:
     // private functions
     void log(const char* level, const char* tag, const char* message);
@@ -67,7 +77,8 @@ private:
     boolean logPublish(const char* level, const char* tag, const char* message);
 
     // private variables
-    char* logStream;
+    BytebeamTime* Time;
+    char logStream[BYTEBEAM_LOG_STREAM_STR_LEN];
     bytebeamLogLevel_t logLevel;
     bool isCloudLoggingEnable;
 };

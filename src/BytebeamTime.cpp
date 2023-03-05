@@ -103,16 +103,25 @@ boolean BytebeamTime::getEpochMillis() {
     // save the epoch millis
     this->nowMillis = timeMillis;
 
+    // Serial.println(prevMillis);
+    // Serial.println(nowMillis);
+
+    unsigned long long threshold = 1000;
+
     // make sure prev epoch millis shouldn't be greater than the now epoch millis
     if(this->prevMillis > this->nowMillis) {
-        Serial.println("failed to obtain time");
-        return false;
+        // fix : taking threshold to over come the override that happens when new millis cross high in MSB
+        if(this->prevMillis > this->nowMillis + threshold) {
+            Serial.println("failed to obtain time");
+            return false;
+        } else {
+            this->nowMillis += threshold;
+            // Serial.println("threshold added to epoch millis");
+        }
     }
 
     // update the prev epoch millis
     this->prevMillis = this->nowMillis;
-
-    // Serial.println(this->nowMillis);
 
     return true;
 }

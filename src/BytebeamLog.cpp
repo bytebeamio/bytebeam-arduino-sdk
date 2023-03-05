@@ -1,24 +1,6 @@
 #include "BytebeamLog.h"
 #include "BytebeamArduino.h"
 
-BytebeamLog::BytebeamLog() {
-    //
-    // Initailizing all the variables with default values here
-    //
-
-    this->logStream = (char*)"Logs";
-    this->logLevel = BYTEBEAM_LOG_LEVEL_INFO;
-    this->isCloudLoggingEnable = true;
-}
-
-BytebeamLog::~BytebeamLog() {
-    //
-    // Nothing much to do here, just print the log :)
-    //
-
-    Serial.println("I am BytebeamLog::~BytebeamLog()");
-}
-
 void BytebeamLog::log(const char* level, const char* tag, const char* message) {
     //
     // this function will print the log in the following format
@@ -104,39 +86,59 @@ void BytebeamLog::logPrintf(bytebeamLogLevel_t level, const char* tag, const cha
 }
 
 boolean BytebeamLog::logPublish(const char* level, const char* tag, const char* message) {
+  //
+  // Publish the log info to cloud :)
+  //
+
+  static int sequence = 0;
+  const char* payload = "";
+  String logMessageStr = "";
+  StaticJsonDocument<1024> doc;
+
+  // get the current epoch millis
+  if(!Time->getEpochMillis()) {
+    Serial.println("failed to get epoch millis");
+    return false;
+  }
+
+  sequence++;
+  unsigned long long milliseconds = Time->nowMillis;
+
+  JsonArray logMessageJsonArray = doc.to<JsonArray>();
+  JsonObject logMessageJsonObj_1 = logMessageJsonArray.createNestedObject();
+
+  logMessageJsonObj_1["timestamp"] = milliseconds;
+  logMessageJsonObj_1["sequence"]  = sequence;
+  logMessageJsonObj_1["level"]     = level;
+  logMessageJsonObj_1["tag"]       = tag;
+  logMessageJsonObj_1["message"]   = message;
+
+  serializeJson(logMessageJsonArray, logMessageStr);
+  payload = logMessageStr.c_str();
+
+  return Bytebeam.publishToStream(this->logStream, payload);
+}
+
+BytebeamLog::BytebeamLog() {
     //
-    // Publish the log info to cloud :)
+    // Initailizing all the variables with default values here
     //
 
-    static int sequence = 0;
-    const char* payload = "";
-    String logMessageStr = "";
-    StaticJsonDocument<1024> doc;
-    BytebeamTime LogTime;
+    strcpy(this->logStream, "logs");
+    this->logLevel = BYTEBEAM_LOG_LEVEL_INFO;
+    this->isCloudLoggingEnable = true;
+}
 
-    // begin the time client
-    if(!LogTime.begin()) {
-        Serial.println("time client begin failed");
-        return false;
-    }
+BytebeamLog::~BytebeamLog() {
+    //
+    // Nothing much to do here, just print the log :)
+    //
 
-    sequence++;
-    unsigned long long milliseconds = LogTime.nowMillis;
-    Serial.println(milliseconds);
+    Serial.println("I am BytebeamLog::~BytebeamLog()");
+}
 
-    JsonArray logMessageJsonArray = doc.to<JsonArray>();
-    JsonObject logMessageJsonObj_1 = logMessageJsonArray.createNestedObject();
-
-    logMessageJsonObj_1["timestamp"] = milliseconds;
-    logMessageJsonObj_1["sequence"]  = sequence;
-    logMessageJsonObj_1["level"]     = level;
-    logMessageJsonObj_1["tag"]       = tag;
-    logMessageJsonObj_1["message"]   = message;
-
-    serializeJson(logMessageJsonArray, logMessageStr);
-    payload = logMessageStr.c_str();
-
-    return Bytebeam.publishToStream(this->logStream, payload);
+void BytebeamLog::setTimeInstance(BytebeamTime* Time) {
+  this->Time = Time;
 }
 
 void BytebeamLog::enableCloudLogging() {
@@ -144,18 +146,23 @@ void BytebeamLog::enableCloudLogging() {
 }
 
 boolean BytebeamLog::isCloudLoggingEnabled() {
-  // return the cloud logging status i.e enabled or disabled
-  if(!this->isCloudLoggingEnable) {
-    Serial.println("Cloud Logging is Disabled.");
-    return false;
-  } else {
-    Serial.println("Cloud Logging is Enabled.");
-    return true;
-  }
+  return this->isCloudLoggingEnable;
 }
 
 void BytebeamLog::disableCloudLogging() {
   this->isCloudLoggingEnable = false;
+}
+
+void BytebeamLog::setLogStream(char* stream) {
+  int tempVar = snprintf(this->logStream, BYTEBEAM_LOG_STREAM_STR_LEN, "%s", stream);
+
+  if(tempVar >= BYTEBEAM_LOG_STREAM_STR_LEN) {
+    Serial.println("log stream size exceeded buffer size");
+  }
+}
+
+char* BytebeamLog::getLogStream() {
+  return this->logStream;
 }
 
 void BytebeamLog::setLogLevel(bytebeamLogLevel_t level) {
@@ -227,7 +234,7 @@ void BytebeamLog::logDebugf(const char* tag, const char* fmt, ...) {
 }
 
 void BytebeamLog::logVerbose(const char* tag, const char* message) {
-  this->logPrint(BYTEBEAM_LOG_LEVEL_VERBOSE, tag, message);
+  logPrint(BYTEBEAM_LOG_LEVEL_VERBOSE, tag, message);
 }
 
 void BytebeamLog::logVerboseln(const char* tag, const char* message) {
