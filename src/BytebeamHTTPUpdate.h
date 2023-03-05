@@ -3,7 +3,7 @@
 
 #include "BytebeamArduinoDefines.h"
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+#if  defined(BYTEBEAM_ARDUINO_ARCH_ESP32) && defined(BYTEBEAM_ARDUINO_USE_MODEM)
 
 #include <Update.h>
 #include <ArduinoHttpClient.h>
@@ -61,6 +61,6 @@ private:
 
 extern BytebeamHTTPUpdate BytebeamhttpUpdate;
 
-#endif /* BYTEBEAM_ARDUINO_ARCH_ESP32 */
+#endif /* BYTEBEAM_ARDUINO_ARCH_ESP32 && BYTEBEAM_ARDUINO_USE_MODEM */
 
 #endif /* BYTEBEAM_HTTP_UPDATE_H */

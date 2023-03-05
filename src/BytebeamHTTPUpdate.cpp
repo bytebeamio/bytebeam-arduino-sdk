@@ -1,6 +1,6 @@
 #include "BytebeamHTTPUpdate.h"
 
-#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+#if  defined(BYTEBEAM_ARDUINO_ARCH_ESP32) && defined(BYTEBEAM_ARDUINO_USE_MODEM)
 
 BytebeamHTTPUpdate::BytebeamHTTPUpdate() {
   //
@@ -92,4 +92,4 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
 
 BytebeamHTTPUpdate BytebeamhttpUpdate;
 
-#endif /* #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32 */
+#endif /* #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32  BYTEBEAM_ARDUINO_USE_MODEM */
