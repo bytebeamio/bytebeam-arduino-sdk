@@ -67,7 +67,9 @@ void setup() {
   //  Your other application setup stuff goes here
   //
 
-  // This method will initialize and start the bytebeam client
+  // This method will initialize and start the bytebeam client 
+  // You can over-ride the default file system and file name options, if needed
+  // eg. Bytebeam.begin(BytebeamArduino::LITTLEFS_FILE_SYSTEM, "/my_device_config.json")
   Bytebeam.begin();
 
   //

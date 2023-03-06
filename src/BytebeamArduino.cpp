@@ -1,9 +1,5 @@
 #include "BytebeamArduino.h"
 
-#ifndef FILE_READ
-#define FILE_READ "r"
-#endif
-
 /* This object will represent the Time library, We will be exposing the necessary functionality and info
  * for the usage, If you want to do any Timing related stuff this guy is for you.
  */
@@ -65,7 +61,7 @@ void BytebeamArduino::printArchitectureInfo() {
   // log esp8266 arch info to serial :)
   Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
   Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
-  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
+  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t\t*\n", ESP.getCpuFreqMHz());
   Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
   Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
   Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());

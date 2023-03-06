@@ -1,5 +1,4 @@
-#include "FS.h"
-#include "SPIFFS.h"
+#include <BytebeamArduino.h>
 
 /* This macro is used to specify the base path of the spiffs partiiton */
 #define SPIFFS_BASE_PATH "/spiffs"
@@ -8,7 +7,7 @@
 #define FORMAT_SPIFFS_IF_FAILED true
 
 /* This macro is used to format the spiffs in the beginnig i.e reset if not required */
-#define FORMAT_SPIFSS_IN_BEGINNING true  
+#define FORMAT_SPIFSS_IN_BEGINNING true
 
 /* This macro is used to specify the name of the device config file */
 #define DEVICE_CONFIG_FILE_NAME "/device_config.json"
@@ -36,36 +35,53 @@ char deviceConfigWriteStr[DEVICE_CONFIG_STR_LENGTH] = R"(
 }
 )";
 
-void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
-  Serial.printf("Listing directory : %s\r\n", dirname);
+#if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
+  void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
+    Serial.printf("Listing directory : %s\r\n", dirname);
 
-  File root = fs.open(dirname);
-  if (!root) {
-    Serial.println("- failed to open directory");
-    return;
-  }
-  if (!root.isDirectory()) {
-    Serial.println(" - not a directory");
-    return;
-  }
-
-  File file = root.openNextFile();
-  while (file) {
-    if (file.isDirectory()) {
-      Serial.print(" - DIR : ");
-      Serial.println(file.name());
-      if (levels) {
-        listDir(fs, file.name(), levels - 1);
-      }
-    } else {
-      Serial.print(" - FILE: ");
-      Serial.print(file.name());
-      Serial.print("\tSIZE: ");
-      Serial.println(file.size());
+    File root = fs.open(dirname);
+    if (!root) {
+      Serial.println("- failed to open directory");
+      return;
     }
-    file = root.openNextFile();
+    if (!root.isDirectory()) {
+      Serial.println(" - not a directory");
+      return;
+    }
+
+    File file = root.openNextFile();
+    while (file) {
+      if (file.isDirectory()) {
+        Serial.print(" - DIR : ");
+        Serial.println(file.name());
+        if (levels) {
+          listDir(fs, file.name(), levels - 1);
+        }
+      } else {
+        Serial.print(" - FILE: ");
+        Serial.print(file.name());
+        Serial.print("\tSIZE: ");
+        Serial.println(file.size());
+      }
+      file = root.openNextFile();
+    }
+  }
+#elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
+  void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
+  Serial.printf("Listing directory: %s\n", dirname);
+
+  Dir root = fs.openDir(dirname);
+
+  while (root.next()) {
+    File file = root.openFile("r");
+    Serial.print(" - FILE: ");
+    Serial.print(root.fileName());
+    Serial.print("\tSIZE: ");
+    Serial.println(file.size());
+    file.close();
   }
 }
+#endif
 
 void readFile(fs::FS &fs, const char *path, char *message) {
   Serial.printf("Reading file : %s\r\n", path);
@@ -117,8 +133,16 @@ void setup() {
   }
 #endif
 
+  bool beginStatus = false;
+
   // initalize the spiffs file system 
-  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH)) {  
+  #if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
+    beginStatus = SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED, SPIFFS_BASE_PATH);
+  #elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
+    beginStatus = SPIFFS.begin();
+  #endif
+
+  if (!beginStatus) {
     Serial.println("spiffs mount failed");
     return;
   } else {

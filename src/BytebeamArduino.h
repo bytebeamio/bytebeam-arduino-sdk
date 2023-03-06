@@ -9,6 +9,14 @@
 #include "BytebeamOTA.h"
 #include "BytebeamArduinoDefines.h"
 
+#ifndef FILE_READ
+#define FILE_READ "r"
+#endif
+
+#ifndef FILE_WRITE
+#define FILE_WRITE "w"
+#endif
+
 /* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
 #define DEBUG_BYTEBEAM_ARDUINO false
 
