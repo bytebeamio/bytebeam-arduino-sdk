@@ -123,7 +123,7 @@ void syncTimeFromNtp() {
 
 void setup() {
   // put your setup code here, to run once:
-  SerialMon.begin(9600);
+  SerialMon.begin(115200);
   SerialMon.println();
 
   setupModem();

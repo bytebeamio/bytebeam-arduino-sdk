@@ -124,7 +124,7 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println();
 
   // initalize the littlefs file system 
