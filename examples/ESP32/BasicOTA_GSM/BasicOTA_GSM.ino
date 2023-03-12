@@ -130,7 +130,11 @@ void setup() {
   syncTimeFromNtp();
   
   // begin the bytebeam client
-  Bytebeam.begin(&modem);
+  if(!Bytebeam.begin(&modem)) {
+    Serial.println("Bytebeam Client Initialization Failed.");
+  } else {
+    Serial.println("Bytebeam Client is Initialized Successfully.");
+  }
 
   // check if OTA is enabled or disabled for your device
   bool OTAStatus = Bytebeam.isOTAEnabled();

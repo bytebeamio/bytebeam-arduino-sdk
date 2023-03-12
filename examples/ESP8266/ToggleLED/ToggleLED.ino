@@ -169,7 +169,11 @@ void setup() {
   setupLED();
   
   // begin the bytebeam client
-  Bytebeam.begin();
+  if(!Bytebeam.begin()) {
+    Serial.println("Bytebeam Client Initialization Failed.");
+  } else {
+    Serial.println("Bytebeam Client is Initialized Successfully.");
+  }
 
   // add the handler for toggle led action
   Bytebeam.addActionHandler(ToggleLED_Hanlder, "ToggleLED");

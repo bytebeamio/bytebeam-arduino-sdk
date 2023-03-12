@@ -96,7 +96,11 @@ void setup() {
   syncTimeFromNtp();
   
   // begin the bytebeam client
-  Bytebeam.begin();
+  if(!Bytebeam.begin()) {
+    Serial.println("Bytebeam Client Initialization Failed.");
+  } else {
+    Serial.println("Bytebeam Client is Initialized Successfully.");
+  }
 
   // check if cloud logging is enabled or disabled for your device
   bool cloudLoggingStatus = Bytebeam.isCloudLoggingEnabled();

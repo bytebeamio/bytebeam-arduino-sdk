@@ -172,7 +172,11 @@ void setup() {
   syncTimeFromNtp();
   
   // begin the bytebeam client
-  Bytebeam.begin();
+  if(!Bytebeam.begin()) {
+    Serial.println("Bytebeam Client Initialization Failed.");
+  } else {
+    Serial.println("Bytebeam Client is Initialized Successfully.");
+  }
 
   // add the handler for update config action
   Bytebeam.addActionHandler(UpdateConfig_Hanlder, "update_config");

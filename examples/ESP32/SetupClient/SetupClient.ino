@@ -68,9 +68,13 @@ void setup() {
   //
 
   // This method will initialize and start the bytebeam client 
-  // You can over-ride the default file system and file name options, if needed
-  // eg. Bytebeam.begin(BytebeamArduino::LITTLEFS_FILE_SYSTEM, "/my_device_config.json")
-  Bytebeam.begin();
+  // You can over-ride the default file system, file name and library logging options, if needed
+  // eg. Bytebeam.begin(BytebeamArduino::LITTLEFS_FILE_SYSTEM, "/my_device_config.json", BytebeamLogger::LOG_INFO)
+  if(!Bytebeam.begin()) {
+    Serial.println("Bytebeam Client Initialization Failed.");
+  } else {
+    Serial.println("Bytebeam Client is Initialized Successfully.");
+  }
 
   //
   // If above call is successfull then your bytebeam client is now configured for the use
