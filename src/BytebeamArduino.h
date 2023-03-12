@@ -7,6 +7,7 @@
 #include "BytebeamLog.h"
 #include "BytebeamTime.h"
 #include "BytebeamOTA.h"
+#include "BytebeamLogger.h"
 #include "BytebeamArduinoDefines.h"
 
 #ifndef FILE_READ
@@ -88,13 +89,15 @@ public:
     // public functions
     #ifdef BYTEBEAM_ARDUINO_USE_WIFI
         boolean begin(  const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
-                        const char* fileName = DEVICE_CONFIG_FILE_NAME);
+                        const char* fileName = DEVICE_CONFIG_FILE_NAME,
+                        BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_USE_MODEM
         boolean begin(  TinyGsm* modem,
                         const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
-                        const char* fileName = DEVICE_CONFIG_FILE_NAME);
+                        const char* fileName = DEVICE_CONFIG_FILE_NAME,
+                        BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
     boolean isBegined();

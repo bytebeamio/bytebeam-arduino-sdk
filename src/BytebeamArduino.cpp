@@ -18,26 +18,49 @@ static BytebeamTime BytebeamTime;
 static bool handleActionFlag = false;
 
 static void BytebeamActionsCallback(char* topic, byte* message, unsigned int length) {
-  Serial.println("I am SubscribeCallback()");
+  BytebeamLogger::Info(__FILE__, __func__, "I am BytebeamActionsCallback()");
+
+  int strSize = 0;
+  int tempVar = 0;
+
+  strSize = length + 1;
+
+  if(strSize <= 1) {
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get action json size");
+    return;
+  }
+
+  char* actionJsonStr = (char*) malloc(strSize);
+
+  // if memory allocation fails just log the failure to serial and return :)
+  if(actionJsonStr == NULL) {
+    BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for action json");
+    return;
+  }
+
+  tempVar = snprintf(actionJsonStr, strSize, "%s", (char*)message);
+
+  // make sure you not loose any packet upto strSize
+  if(tempVar < strSize - 1) {
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get action json");
+    return;
+  }
 
   // log the recieved action to serial :)
-  Serial.print("{topic : ");
-  Serial.print(topic);
-  Serial.print(", message : ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)message[i]);
-  }
-  Serial.println("}");
+  BytebeamLogger::Info(__FILE__, __func__, "just subscribed, {topic : %s, message : %s}", topic, actionJsonStr);
 
   // set the handle action flag
   handleActionFlag = true;
 
   // handle the received action
-  Bytebeam.handleActions((char*)message);
+  Bytebeam.handleActions(actionJsonStr);
+
+  // release the allocated memory :)
+  free(actionJsonStr);
 }
 
 static void rebootESPWithReason(char* reason) {
-  Serial.println(reason);
+  BytebeamLogger::Warn(__FILE__, __func__, reason);
   delay(3000);
   ESP.restart();
 }
@@ -47,31 +70,31 @@ void BytebeamArduino::printArchitectureInfo() {
   // log the usefull architecture information to serial :)
   //
 
-  Serial.println("* ********************************************************************* *");
+  BytebeamLogger::Info(__FILE__, __func__, "* ****************************************************************** *");
 
 #if defined(BYTEBEAM_ARDUINO_ARCH_ESP32)
   // log esp32 arch info to serial :)
-  Serial.printf("*\t\t\t Architecture : ESP32 \t\t\t\t*\n");
-  Serial.printf("*\t\t\t Chip Model   : %s \t\t\t*\n", ESP.getChipModel());
-  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t*\n", ESP.getCpuFreqMHz());
-  Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
-  Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
-  Serial.printf("*\t\t\t SDK Version  : %s \t\t\t\t*\n", ESP.getSdkVersion());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Architecture : ESP32 \t\t\t\t*");
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Chip Model   : %s \t\t\t*", ESP.getChipModel());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t CPU Freq     : %d MHz \t\t\t*", ESP.getCpuFreqMHz());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Flash Size   : %d MB \t\t\t\t*", ((ESP.getFlashChipSize())/1024)/1024);
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Free Heap    : %d KB \t\t\t\t*", (ESP.getFreeHeap())/1024);
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t SDK Version  : %s \t\t\t\t*", ESP.getSdkVersion());
 #elif defined(BYTEBEAM_ARDUINO_ARCH_ESP8266)
   // log esp8266 arch info to serial :)
-  Serial.printf("*\t\t\t Architecture : ESP8266 \t\t\t*\n");
-  Serial.printf("*\t\t\t Chip Id      : %d \t\t\t*\n", ESP.getChipId());
-  Serial.printf("*\t\t\t CPU Freq     : %d MHz \t\t\t\t*\n", ESP.getCpuFreqMHz());
-  Serial.printf("*\t\t\t Flash Size   : %d MB \t\t\t\t*\n", ((ESP.getFlashChipSize())/1024)/1024);
-  Serial.printf("*\t\t\t Free Heap    : %d KB \t\t\t\t*\n", (ESP.getFreeHeap())/1024);
-  Serial.printf("*\t\t\t SDK Version  : %s \t\t*\n", ESP.getSdkVersion());
-  Serial.printf("*\t\t\t Core Version : %s \t\t\t\t*\n", ESP.getCoreVersion());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Architecture : ESP8266 \t\t\t*");
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Chip Id      : %d \t\t\t*", ESP.getChipId());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t CPU Freq     : %d MHz \t\t\t\t*", ESP.getCpuFreqMHz());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Flash Size   : %d MB \t\t\t\t*", ((ESP.getFlashChipSize())/1024)/1024);
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Free Heap    : %d KB \t\t\t\t*", (ESP.getFreeHeap())/1024);
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t SDK Version  : %s \t\t*", ESP.getSdkVersion());
+  BytebeamLogger::Info(__FILE__, __func__, "*\t\t\t Core Version : %s \t\t\t\t*", ESP.getCoreVersion());
 #else
   // log unknown arch info to serial :)
-  Serial.println("Unknown Architecture");
+  BytebeamLogger::Info(__FILE__, __func__, "Unknown Architecture");
 #endif
 
-  Serial.println("* ********************************************************************* *");
+  BytebeamLogger::Info(__FILE__, __func__, "* ****************************************************************** *");
 }
 
 void BytebeamArduino::initActionHandlerArray() {
@@ -94,10 +117,10 @@ boolean BytebeamArduino::subscribe(const char* topic, uint8_t qos) {
   //
 
   if(!PubSubClient::subscribe(topic, qos)) {
-    Serial.printf("subscribe failed, topic : %s and qos : %d\n", topic, qos);
+    BytebeamLogger::Error(__FILE__, __func__, "subscribe failed, {topic : %s, qos : %d}", topic, qos);
     return false;
   } else {
-    Serial.printf("subscribe success, topic : %s and qos : %d\n", topic, qos);
+    BytebeamLogger::Info(__FILE__, __func__, "subscribe success, {topic : %s, qos : %d}", topic, qos);
     return true;
   }
 }
@@ -108,10 +131,10 @@ boolean BytebeamArduino::unsubscribe(const char* topic) {
   //
 
   if(!PubSubClient::unsubscribe(topic)) {
-    Serial.printf("unsubscribe failed, topic : %s\n", topic);
+    BytebeamLogger::Error(__FILE__, __func__, "unsubscribe failed, {topic : %s}", topic);
     return false;
   } else {
-    Serial.printf("unsubscribe success, topic : %s\n", topic);
+    BytebeamLogger::Info(__FILE__, __func__, "unsubscribe success, {topic : %s}", topic);
     return true;
   }
 }
@@ -122,10 +145,10 @@ boolean BytebeamArduino::publish(const char* topic, const char* payload) {
   //
 
   if(!PubSubClient::publish(topic, payload)) {
-    Serial.printf("publish failed, {topic : %s, message : %s}\n", topic, payload);
+    BytebeamLogger::Error(__FILE__, __func__, "publish failed, {topic : %s, message : %s}", topic, payload);
     return false;
   } else {
-    Serial.printf("publish success, {topic : %s, message : %s}\n", topic, payload);
+    BytebeamLogger::Info(__FILE__, __func__, "publish success, {topic : %s, message : %s}", topic, payload);
     return true;
   }
 }
@@ -133,7 +156,7 @@ boolean BytebeamArduino::publish(const char* topic, const char* payload) {
 boolean BytebeamArduino::subscribeToActions() {
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
-    Serial.printf("subscribe to actions failed, bytebeam client is not connected to the cloud\n");
+    BytebeamLogger::Error(__FILE__, __func__, "subscribe to actions failed, bytebeam client is not connected to the cloud");
     return false;
   }
 
@@ -144,14 +167,12 @@ boolean BytebeamArduino::subscribeToActions() {
   int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
 
   if(tempVar >= maxLen) {
-    Serial.println("subscribe action topic size exceeded topic buffer size");
+    BytebeamLogger::Error(__FILE__, __func__, "subscribe action topic size exceeded topic buffer size");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(qos);
-  Serial.println(topic);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "qos : %d", qos);
+  BytebeamLogger::Debug(__FILE__, __func__, "topic : %s", topic);
 
   return subscribe(topic, qos);
 }
@@ -159,7 +180,7 @@ boolean BytebeamArduino::subscribeToActions() {
 boolean BytebeamArduino::unsubscribeToActions() {
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
-    Serial.printf("unsubscribe to actions abort, bytebeam client is not connected to the cloud\n");
+    BytebeamLogger::Error(__FILE__, __func__, "unsubscribe to actions abort, bytebeam client is not connected to the cloud");
     return false;
   }
 
@@ -169,13 +190,11 @@ boolean BytebeamArduino::unsubscribeToActions() {
   int tempVar = snprintf(topic, maxLen, "/tenants/%s/devices/%s/actions", this->projectId, this->deviceId);
 
   if(tempVar >= maxLen) {
-    Serial.println("unsubscribe action topic size exceeded topic buffer size");
+    BytebeamLogger::Error(__FILE__, __func__, "unsubscribe action topic size exceeded topic buffer size");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(topic);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "topic : %s", topic); 
 
   return unsubscribe(topic);
 }
@@ -193,7 +212,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
   // get the current epoch millis
   if(!BytebeamTime.getEpochMillis()) {
-    Serial.println("failed to get epoch millis");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get epoch millis");
     return false;
   }
 
@@ -217,14 +236,12 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/action/status", this->projectId, this->deviceId);
 
   if(tempVar >= maxLen) {
-    Serial.println("action status topic size exceeded topic buffer size");
+    BytebeamLogger::Error(__FILE__, __func__, "action status topic size exceeded topic buffer size");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(topic);
-  Serial.println(payload);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "topic : %s", topic); 
+  BytebeamLogger::Debug(__FILE__, __func__, "payload : %s", payload); 
 
   return publish(topic, payload);
 }
@@ -244,11 +261,11 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
      */
   #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FATFS
       case FATFS_FILE_SYSTEM:
-        Serial.println("FATFS file system detected !");
+        BytebeamLogger::Info(__FILE__, __func__, "FATFS file system detected !");
 
         // initalize the FATFS file system
         if(!FFat.begin()) {
-          Serial.println("FATFS mount failed");
+          BytebeamLogger::Error(__FILE__, __func__, "FATFS mount failed");
           return false;
         }
 
@@ -260,11 +277,11 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
   #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SPIFFS
       case SPIFFS_FILE_SYSTEM:
-        Serial.println("SPIFFS file system detected !");
+        BytebeamLogger::Info(__FILE__, __func__, "SPIFFS file system detected !");
 
         // initalize the SPIFFS file system
         if(!SPIFFS.begin()) {
-          Serial.println("SPIFFS mount failed");
+          BytebeamLogger::Error(__FILE__, __func__, "SPIFFS mount failed");
           return false;
         }
 
@@ -276,11 +293,11 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
   #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_LITTLEFS
       case LITTLEFS_FILE_SYSTEM:
-        Serial.println("LITTLEFS file system detected !");
+        BytebeamLogger::Info(__FILE__, __func__, "LITTLEFS file system detected !");
 
         // initalize the LITTLEFS file system
         if(!LittleFS.begin()) {
-          Serial.println("LITTLEFS mount failed");
+          BytebeamLogger::Error(__FILE__, __func__, "LITTLEFS mount failed");
           return false;
         }
 
@@ -292,31 +309,31 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
   #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_SD
       case SD_FILE_SYSTEM:
-        Serial.println("SD file system detected !");
+        BytebeamLogger::Info(__FILE__, __func__, "SD file system detected !");
 
         // Just print the log and return :)
-        Serial.println("SD is not supported by the library yet");
+        BytebeamLogger::Info(__FILE__, __func__, "SD is not supported by the library yet");
         return false;
 
         break;
   #endif
   
       default:
-        Serial.println("Unknown file system detected !");
+        BytebeamLogger::Info(__FILE__, __func__, "Unknown file system detected !");
 
         // Just print the log and return :)
-        Serial.println("Make sure the architecture supports the selcted file system");
+        BytebeamLogger::Info(__FILE__, __func__, "Make sure the architecture supports the selcted file system");
         return false;
 
         break;
     }
 
     const char* path = fileName;
-    Serial.printf("Reading file : %s\n", path);
+    BytebeamLogger::Info(__FILE__, __func__, "Reading file : %s", path);
 
     File file = ptrToFS->open(path, FILE_READ);
     if (!file || file.isDirectory()) {
-      Serial.println("- failed to open device config file for reading");
+      BytebeamLogger::Error(__FILE__, __func__, "- failed to open device config file for reading");
       return false;
     }
 
@@ -327,7 +344,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
     strSize = file.size() + 1;
 
     if(strSize <= 1) {
-      Serial.println("failed to get device config file size");
+      BytebeamLogger::Error(__FILE__, __func__, "failed to get device config file size");
       return false;
     }
 
@@ -335,11 +352,11 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
     // if memory allocation fails just log the failure to serial and return :)
     if(this->deviceConfigStr == NULL) {
-      Serial.println("failed to allocate the memory for device config file");
+      BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for device config file");
       return false;
     }
 
-    Serial.println("- read from file");
+    BytebeamLogger::Info(__FILE__, __func__, "- read from file");
     while (file.available()) {
       chr = file.read();
       this->deviceConfigStr[strIndex++] = chr;
@@ -385,19 +402,16 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   #endif
 
       default:
-        Serial.println("Unknown file system detected !");
+        BytebeamLogger::Info(__FILE__, __func__, "Unknown file system detected !");
 
         // Just print the log and return :)
-        Serial.println("Make sure the architecture supports the selcted file system");
+        BytebeamLogger::Info(__FILE__, __func__, "Make sure the architecture supports the selcted file system");
         return false;
 
         break;
     }
 
-  #if DEBUG_BYTEBEAM_ARDUINO
-    Serial.println("deviceConfigStr :");
-    Serial.println(this->deviceConfigStr);
-  #endif
+    BytebeamLogger::Debug(__FILE__, __func__, "deviceConfigStr : %s", this->deviceConfigStr);
 
     return true;
   }
@@ -406,7 +420,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 boolean BytebeamArduino::parseDeviceConfigFile() {
   // before going ahead make sure you are parsing something
   if(this->deviceConfigStr == NULL) {
-    Serial.println("device config file is empty");
+    BytebeamLogger::Error(__FILE__, __func__, "device config file is empty");
     return false;
   }
 
@@ -414,13 +428,13 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   DeserializationError err = deserializeJson(deviceConfigJson, this->deviceConfigStr);
 
   if(err) {
-    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
+    BytebeamLogger::Error(__FILE__, __func__, "deserializeJson() failed : %s", err.c_str());
     return false;
   } else {
-    Serial.println("deserializeJson() success");
+    BytebeamLogger::Info(__FILE__, __func__, "deserializeJson() success");
   }
   
-  Serial.println("Obtaining device config file variables");
+  BytebeamLogger::Info(__FILE__, __func__, "Obtaining device config file variables");
 
   this->mqttPort      = deviceConfigJson["port"];
   this->mqttBrokerUrl = deviceConfigJson["broker"];
@@ -438,24 +452,22 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   int argIterator = 0;
   for(argIterator = 0; argIterator < numArg; argIterator++) {
     if(args[argIterator] == NULL) {
-      Serial.printf("- failed to obtain %s\n", name[argIterator]);
+      BytebeamLogger::Error(__FILE__, __func__, "- failed to obtain %s", name[argIterator]);
       return false;
     }
   }
-  Serial.println("- obtain device config file variables");
+  BytebeamLogger::Info(__FILE__, __func__, "- obtain device config file variables");
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(this->mqttPort);
-  Serial.println(this->mqttBrokerUrl);
-  Serial.println(this->deviceId);
-  Serial.println(this->projectId);
-  Serial.println(this->caCertPem);
-  Serial.println(this->clientCertPem);
-  Serial.println(this->clientKeyPem);
-  Serial.println(this->clientId);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "mqttPort : %d", this->mqttPort);
+  BytebeamLogger::Debug(__FILE__, __func__, "mqttBrokerUrl : %s", this->mqttBrokerUrl);
+  BytebeamLogger::Debug(__FILE__, __func__, "deviceId : %s", this->deviceId);
+  BytebeamLogger::Debug(__FILE__, __func__, "projectId : %s", this->projectId);
+  BytebeamLogger::Debug(__FILE__, __func__, "caCertPem : \n%s", this->caCertPem);
+  BytebeamLogger::Debug(__FILE__, __func__, "clientCertPem : \n%s", this->clientCertPem);
+  BytebeamLogger::Debug(__FILE__, __func__, "clientKeyPem : \n%s", this->clientKeyPem);
+  BytebeamLogger::Debug(__FILE__, __func__, "clientId : %s", this->clientId);
 
-  Serial.printf("Project Id : %s and Device Id : %s\n", this->projectId, this->deviceId);
+  BytebeamLogger::Info(__FILE__, __func__, "Project Id : %s and Device Id : %s", this->projectId, this->deviceId);
 
   return true;
 }
@@ -476,7 +488,7 @@ boolean BytebeamArduino::setupBytebeamClient() {
 
   // if memory allocation fails just log the failure to serial and return :)
   if(this->rootCA == NULL) {
-    Serial.println("failed to allocate the memory for root ca");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for root ca");
     return false;
   }
 
@@ -484,7 +496,7 @@ boolean BytebeamArduino::setupBytebeamClient() {
 
   // if memory allocation fails just log the failure to serial and return :)
   if(this->clientCert == NULL) {
-    Serial.println("failed to allocate the memory for client cert");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for client cert");
     return false;
   }
 
@@ -492,7 +504,7 @@ boolean BytebeamArduino::setupBytebeamClient() {
 
   // if memory allocation fails just log the failure to serial and return :)
   if(this->clientKey == NULL) {
-    Serial.println("failed to allocate the memory for client key");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for client key");
     return false;
   }
 
@@ -505,14 +517,14 @@ boolean BytebeamArduino::setupBytebeamClient() {
   PubSubClient::setCallback(BytebeamActionsCallback);
   PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
 
-  Serial.print("Connecting To Bytebeam Cloud : ");
+  BytebeamLogger::Info(__FILE__, __func__, "Connecting To Bytebeam Cloud ... ");
 
   if(!PubSubClient::connect(this->clientId)) {
-    Serial.println("ERROR");
+    BytebeamLogger::Error(__FILE__, __func__, "ERROR");
     return false;
   }
 
-  Serial.println("CONNECTED");
+ BytebeamLogger::Info(__FILE__, __func__, "CONNECTED");
 
   return true;
 }
@@ -550,11 +562,11 @@ void BytebeamArduino::clearBytebeamClient() {
   PubSubClient::setCallback(NULL);
   PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
 
-  Serial.print("Disconnecting To Bytebeam Cloud : ");
+  BytebeamLogger::Info(__FILE__, __func__, "Disconnecting To Bytebeam Cloud ... ");
 
   PubSubClient::disconnect();
 
-  Serial.println("DISCONNECTED");
+  BytebeamLogger::Info(__FILE__, __func__, "DISCONNECTED");
 }
 
 boolean BytebeamArduino::init(const deviceConfigFileSystem fileSystem, const char* fileName) {
@@ -563,15 +575,15 @@ boolean BytebeamArduino::init(const deviceConfigFileSystem fileSystem, const cha
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
   if(!readDeviceConfigFile(fileSystem, fileName)) {
-    Serial.println("begin abort, error while reading the device config file...\n");
+    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while reading the device config file.\n");
     return false;
   }
 #else
-  Serial.println("Architecture doesn't support file system");
+  BytebeamLogger::Info(__FILE__, __func__, "Architecture doesn't support file system");
 #endif
             
   if(!parseDeviceConfigFile()) {
-    Serial.println("begin abort, error while parsing the device config file...\n");
+    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while parsing the device config file.\n");
     return false;
   }
 
@@ -579,38 +591,39 @@ boolean BytebeamArduino::init(const deviceConfigFileSystem fileSystem, const cha
   BytebeamOTA.retrieveOTAInfo();
 
   if(!BytebeamOTA.otaUpdateFlag) {
-    Serial.println("RESTART: Normal Reboot !");
+    BytebeamLogger::Info(__FILE__, __func__, "RESTART: Normal Reboot !");
   } else {
-    Serial.println("RESTART: Reboot After Successfull OTA Update !");
+    BytebeamLogger::Info(__FILE__, __func__, "RESTART: Reboot After Successfull OTA Update !");
   }
 #endif
 
   if(!setupBytebeamClient()) {
-    Serial.println("begin abort, error while connecting to server...\n");
+    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while connecting to cloud.\n");
     return false;
   }
 
 #if BYTEBEAM_OTA_ENABLE  
   if(BytebeamOTA.otaUpdateFlag) {
     if(!publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
-      Serial.println("failed to publish ota complete status...");
+      BytebeamLogger::Error(__FILE__, __func__, "Failed to publish OTA complete status.\n");
     }
 
     BytebeamOTA.clearOTAInfoFromRAM();
     BytebeamOTA.clearOTAInfoFromFlash();
   }
 #else
-  Serial.println("Skipped Bytebeam OTA from compilation phase i.e saving flash size");
+  BytebeamLogger::Info(__FILE__, __func__, "Skipped Bytebeam OTA from compilation phase i.e saving flash size");
 #endif
 
   if(!subscribeToActions()) {
-    Serial.println("begin abort, error while subscribe to actions...\n");
+    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while subscribe to actions.\n");
     return false;
   }
 
+  // this flag marks the client initialization
   this->isClientActive = true;
 
-  Serial.println("Bytebeam Client Activated Successfully !\n");
+  BytebeamLogger::Info(__FILE__, __func__, "Bytebeam Client Initialized Successfully !\n");
 
   return true;
 }
@@ -646,21 +659,26 @@ BytebeamArduino::~BytebeamArduino() {
   // Nothing much to do here, just print the log to serial :)
   //
 
-  Serial.println("I am BytebeamArduino::~BytebeamArduino()");
+  BytebeamLogger::Info(__FILE__, __func__, "I am BytebeamArduino::~BytebeamArduino()");
 }
 
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
-  boolean BytebeamArduino::begin(const deviceConfigFileSystem fileSystem, const char* fileName) {
+  boolean BytebeamArduino::begin( const deviceConfigFileSystem fileSystem, 
+                                  const char* fileName, 
+                                  BytebeamLogger::DebugLevel level) {
+    // start with setting the bytbeam logger log level 
+    BytebeamLogger::setLogLevel(level);
+
     // fix : ensure wifi status before using ntp methods o/w they will give hard fault
     if(WiFi.status() != WL_CONNECTED) {
-      Serial.println("begin abort, could not find WiFi connectivity");
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, could not find WiFi connectivity.\n");
       return false;
     }
 
     // so we got the wifi conectivity at this point
     // before initializing the core sdk make sure time client is working fine with wifi
     if(!BytebeamTime.begin()) {
-      Serial.println("begin abort, time client begin failed...\n");
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, time client begin failed.\n");
       return false;
     }
 
@@ -675,10 +693,16 @@ BytebeamArduino::~BytebeamArduino() {
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-  boolean BytebeamArduino::begin(TinyGsm* modem, const deviceConfigFileSystem fileSystem, const char* fileName) {
+  boolean BytebeamArduino::begin( TinyGsm* modem, 
+                                  const deviceConfigFileSystem fileSystem, 
+                                  const char* fileName,
+                                  BytebeamLogger::DebugLevel level) {
+    // start with setting the bytbeam logger log level 
+    BytebeamLogger::setLogLevel(level);
+
     // fix : ensure modem instance before using modem class methods o/w they will give hard fault
     if(!modem) {
-      Serial.println("begin abort, failed to get modem instance");
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, failed to get Modem instance.\n");
       return false;
     }
 
@@ -694,7 +718,7 @@ BytebeamArduino::~BytebeamArduino() {
     // so we got the modem conectivity at this point
     // before initializing the core sdk make sure time client is working fine with modem
     if(!BytebeamTime.begin()) {
-      Serial.println("begin abort, time client begin failed...\n");
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, time client begin failed.\n");
       return false;
     }
 
@@ -709,24 +733,18 @@ BytebeamArduino::~BytebeamArduino() {
 #endif
 
 boolean BytebeamArduino::isBegined() {
-  // return the client status i.e activated or deactivated
-  if(!this->isClientActive) {
-    Serial.println("Bytebeam Client is Deactivated.");
-    return false;
-  } else {
-    Serial.println("Bytebeam Client is Activated.");
-    return true;
-  }
+  // return the client status i.e initialized or de-initialized
+  return this->isClientActive;
 }
 
 boolean BytebeamArduino::loop() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::loop() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
+#if 0 // Enable this code fragment to force disconnect from cloud, can be used in debugging loop section
   static int counter = 0;
   counter++;
   if(counter == 10) { 
@@ -735,25 +753,25 @@ boolean BytebeamArduino::loop() {
 #endif
 
   if(!PubSubClient::connected()) {
-    Serial.println("Bytebean Client Connection Broken");
+    BytebeamLogger::Info(__FILE__, __func__, "Bytebean Client Connection Broken");
 
     int tryCount = 0;
     while(!PubSubClient::connected()) {
       if(tryCount == BYTEBEAM_CONNECT_MAX_RETRIES) {
-        Serial.println("Maximum attempt limit reached, can't reconnect to the cloud");
+        BytebeamLogger::Error(__FILE__, __func__, "Maximum attempt limit reached, can't reconnect to the cloud");
         return false;
       }
      
       tryCount++;
-      Serial.printf("Attempt : %d, Trying To Reconnect To The Cloud : ", tryCount);
+      BytebeamLogger::Info(__FILE__, __func__, "Attempt : %d, Trying To Reconnect To The Cloud ... ", tryCount);
 
       if(!PubSubClient::connect("BytebeamClient")) {
-        Serial.println("ERROR");
+        BytebeamLogger::Info(__FILE__, __func__, "ERROR");
         delay(1000);
       } else {
-        Serial.println("CONNECTED");
+        BytebeamLogger::Info(__FILE__, __func__, "CONNECTED");
         if(!subscribeToActions()) {
-          Serial.println("Subscribe to actions failed");
+          BytebeamLogger::Error(__FILE__, __func__, "Subscribe to actions failed");
           return false;
         }
       }
@@ -761,10 +779,10 @@ boolean BytebeamArduino::loop() {
   }
 
   if(!PubSubClient::loop()) {
-    Serial.println("Bytebeam loop failed");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam loop failed");
     return false;
   } else {
-    Serial.println("I am BytebeamArduino::loop()");
+    BytebeamLogger::Info(__FILE__, __func__, "I am BytebeamArduino::loop()");
     return true;
   }
 }
@@ -772,49 +790,43 @@ boolean BytebeamArduino::loop() {
 boolean BytebeamArduino::isConnected() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::connected() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   // return the connection status i.e connected or disconnected
-  if(!PubSubClient::connected()) {
-    Serial.println("Bytebeam Client is not Connected to the Cloud !");
-    return false;
-  } else {
-    Serial.println("Bytebeam Client is Connected to the Cloud !");
-    return true;
-  }
+  return PubSubClient::connected();
 }
 
 boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::handleActions() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(actionReceivedStr);
-#else  
+  BytebeamLogger::Debug(__FILE__, __func__, "actionReceivedStr : %s", actionReceivedStr);
+
+// Enable this code fragment to debug this api externally
+// #if 0
   if(!handleActionFlag) {
-    Serial.println("I am BytebeamArduino::handleActions()");
-    Serial.println("This api is meant to handle the actions that comes from the cloud as a subsciption packet");
-    Serial.println("You can not call this api directly, If you are devloper step into debug mode");
+    BytebeamLogger::Info(__FILE__, __func__, "This api is meant to handle the actions that comes from the cloud as a subsciption packet");
+    BytebeamLogger::Info(__FILE__, __func__, "You can not call this api directly, If you are devloper step into debug mode");
     return false;
   }
-#endif
+// #endif
   
   StaticJsonDocument<1024> actionReceivedJson;
   DeserializationError err = deserializeJson(actionReceivedJson, actionReceivedStr);
   
   if(err) {
-    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
+    BytebeamLogger::Error(__FILE__, __func__, "deserializeJson() failed : %s", err.c_str());
     return false;
   } else {
-    Serial.println("deserializeJson() success");
+    BytebeamLogger::Info(__FILE__, __func__, "deserializeJson() success");
   }
   
-  Serial.println("Obtaining action variables");
+  BytebeamLogger::Info(__FILE__, __func__, "Obtaining action variables");
 
   const char* name     = actionReceivedJson["name"];
   const char* id       = actionReceivedJson["id"];
@@ -828,18 +840,16 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   int argIterator = 0;
   for(argIterator = 0; argIterator < numArg; argIterator++) {
     if(argsStr[argIterator] == NULL) {
-      Serial.printf("- failed to obtain %s\n", argsName[argIterator]);
+      BytebeamLogger::Error(__FILE__, __func__, "- failed to obtain %s", argsName[argIterator]);
       return false;
     }
   }
-  Serial.println("- obtain action variables");
+  BytebeamLogger::Info(__FILE__, __func__, "- obtain action variables");
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(name);
-  Serial.println(id);
-  Serial.println(payload);
-  Serial.println(kind);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "name : %s", name);
+  BytebeamLogger::Debug(__FILE__, __func__, "id : %s", id);
+  BytebeamLogger::Debug(__FILE__, __func__, "payload : %s", payload);
+  BytebeamLogger::Debug(__FILE__, __func__, "kind : %s", kind);
 
   /* Above way of extracting json will give the pointers to the json itself, So If you want to use the parameter
    * beyond the scope of this function then you must create a copy of it and then pass it. i.e (id and payload)
@@ -848,10 +858,10 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   int strSize = 0;
   int tempVar = 0;
 
-  strSize = snprintf(NULL, 0, id) + 1;
+  strSize = snprintf(NULL, 0, "%s", id) + 1;
 
   if(strSize <= 1) {
-    Serial.println("failed to get action id size");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get action id size");
     return false;
   }
 
@@ -859,21 +869,21 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
 
   // if memory allocation fails just log the failure to serial and return :)
   if(idStr == NULL) {
-    Serial.println("failed to allocate the memory for action id");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for action id");
     return false;
   }
 
-  tempVar = snprintf(idStr, strSize, id);
+  tempVar = snprintf(idStr, strSize, "%s", id);
 
   if(tempVar >= strSize) {
-    Serial.println("failed to get action id");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get action id");
     return false;
   }
 
-  strSize = snprintf(NULL, 0, payload) + 1;
+  strSize = snprintf(NULL, 0, "%s", payload) + 1;
 
   if(strSize <= 1) {
-    Serial.println("failed to get payload size");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get payload size");
     return false;
   }
 
@@ -881,20 +891,20 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
 
   // if memory allocation fails just log the failure to serial and return :)
   if(payloadStr == NULL) {
-    Serial.println("failed to allocate the memory for payload");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to allocate the memory for payload");
     return false;
   }
 
-  tempVar = snprintf(payloadStr, strSize, payload);
+  tempVar = snprintf(payloadStr, strSize, "%s", payload);
 
   if(tempVar >= strSize) {
-    Serial.println("failed to get payload");
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get payload");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(idStr);
-  Serial.println(payloadStr);
+#if 0 // Enable this code fragment to check malloc generated buffers
+  BytebeamLogger::Debug(__FILE__, __func__, "idStr : %s", idStr);
+  BytebeamLogger::Debug(__FILE__, __func__, "payloadStr : %s", payloadStr);
 #endif
 
   int actionIterator = 0;
@@ -907,7 +917,7 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   }
 
   if(this->actionFuncs[actionIterator].name == NULL) {
-    Serial.printf("invalid action : %s\n", name);
+    BytebeamLogger::Error(__FILE__, __func__, "invalid action : %s", name);
   }
 
   // release the allocated memory :)
@@ -923,19 +933,19 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
 boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::addActionHandler() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   if(this->actionFuncsHandlerIdx + 1 >= BYTEBEAM_NUMBER_OF_ACTIONS) {
-    Serial.println("maximum actions limit reached, can't create new action at the moment");
+    BytebeamLogger::Error(__FILE__, __func__, "maximum actions limit reached, can't create new action at the moment");
     return false;
   }
 
   int actionIterator = 0;
   for(actionIterator = 0; actionIterator <= this->actionFuncsHandlerIdx; actionIterator++) {
     if(!strcmp(this->actionFuncs[actionIterator].name, actionName)) {
-      Serial.printf("action : %s is already there at index %d, update the action instead\n", actionName, actionIterator);
+      BytebeamLogger::Error(__FILE__, __func__, "action : %s is already there at index %d, update the action instead", actionName, actionIterator);
       return false;
     }
   }
@@ -950,7 +960,7 @@ boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actio
 boolean BytebeamArduino::removeActionHandler(char* actionName) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::removeActionHandler() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
@@ -964,7 +974,7 @@ boolean BytebeamArduino::removeActionHandler(char* actionName) {
   }
 
   if(targetActionIdx == -1) {
-    Serial.printf("action : %s not found \n", actionName);
+    BytebeamLogger::Error(__FILE__, __func__, "action : %s not found, can't remove", actionName);
     return false;
   } else {
     for(actionIterator = targetActionIdx; actionIterator != this->actionFuncsHandlerIdx; actionIterator++) {
@@ -982,7 +992,7 @@ boolean BytebeamArduino::removeActionHandler(char* actionName) {
 boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::updateActionHandler ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
@@ -996,7 +1006,7 @@ boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char*
   }
 
   if(targetActionIdx == -1) {
-    Serial.printf("action : %s not found\n", actionName);
+    BytebeamLogger::Error(__FILE__, __func__, "action : %s not found, can't update", actionName);
     return false;
   } else {
     this->actionFuncs[targetActionIdx].func = newFuncPtr;
@@ -1007,7 +1017,7 @@ boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char*
 boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::isActionHandlerThere() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
@@ -1021,10 +1031,10 @@ boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
   }
 
   if(targetActionIdx == -1) {
-    Serial.printf("action : %s not found\n", actionName);
+    BytebeamLogger::Info(__FILE__, __func__, "action : %s not found", actionName);
     return false;
   } else {
-    Serial.printf("action : %s found at index %d\n", actionName, targetActionIdx);
+    BytebeamLogger::Info(__FILE__, __func__, "action : %s found at index %d", actionName, targetActionIdx);
     return true;
   }
 }
@@ -1032,21 +1042,21 @@ boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
 boolean BytebeamArduino::printActionHandlerArray() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::printActionHandlerArray() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   int actionIterator = 0;
 
-  Serial.println("["); 
+  BytebeamLogger::Info(__FILE__, __func__, "["); 
   for(actionIterator = 0; actionIterator < BYTEBEAM_NUMBER_OF_ACTIONS; actionIterator++) {
     if(this->actionFuncs[actionIterator].name != NULL) {
-      Serial.printf("       { %s : %s }        \n", this->actionFuncs[actionIterator].name, "*******");
+      BytebeamLogger::Info(__FILE__, __func__, "       { %s : %s }        ", this->actionFuncs[actionIterator].name, "*******");
     } else {
-      Serial.printf("       { %s : %s }        \n", "NULL", "NULL");
+      BytebeamLogger::Info(__FILE__, __func__, "       { %s : %s }        ", "NULL", "NULL");
     }
   }
-  Serial.println("]");
+  BytebeamLogger::Info(__FILE__, __func__, "]");
 
   return true;
 }
@@ -1054,7 +1064,7 @@ boolean BytebeamArduino::printActionHandlerArray() {
 boolean BytebeamArduino::resetActionHandlerArray() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::resetActionHandlerArray() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
@@ -1066,21 +1076,21 @@ boolean BytebeamArduino::resetActionHandlerArray() {
 boolean BytebeamArduino::publishActionCompleted(char* actionId) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::publishActionCompleted() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
-    Serial.printf("publish action completed abort, bytebeam client is not connected to the cloud\n");
+    BytebeamLogger::Error(__FILE__, __func__, "publish action completed abort, bytebeam client is not connected to the cloud");
     return false;
   }
 
   if(!publishActionStatus(actionId, 100, "Completed", "No Error")) {
-    Serial.printf("publish action completed response failed, action_id : %s\n", actionId);
+    BytebeamLogger::Error(__FILE__, __func__, "publish action completed response failed, action_id : %s", actionId);
     return false;
   } else {
-    Serial.printf("publish action completed response success, action_id : %s\n", actionId);
+    BytebeamLogger::Info(__FILE__, __func__, "publish action completed response success, action_id : %s", actionId);
     return true;
   }
 }
@@ -1088,21 +1098,21 @@ boolean BytebeamArduino::publishActionCompleted(char* actionId) {
 boolean BytebeamArduino::publishActionFailed(char* actionId) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::publishActionFailed() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
-    Serial.printf("publish action failed abort, bytebeam client is not connected to the cloud\n");
+    BytebeamLogger::Error(__FILE__, __func__, "publish action failed abort, bytebeam client is not connected to the cloud");
     return false;
   }
 
   if(!publishActionStatus(actionId, 0, "Failed", "Action Failed")) {
-    Serial.printf("publish action failed response failed, action_id : %s\n", actionId);
+    BytebeamLogger::Error(__FILE__, __func__, "publish action failed response failed, action_id : %s", actionId);
     return false;
   } else {
-    Serial.printf("publish action failed response success, action_id : %s\n", actionId);
+    BytebeamLogger::Info(__FILE__, __func__, "publish action failed response success, action_id : %s", actionId);
     return true;
   }
 }
@@ -1110,21 +1120,21 @@ boolean BytebeamArduino::publishActionFailed(char* actionId) {
 boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::publishActionProgress() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
-    Serial.printf("publish action progress abort, bytebeam client is not connected to the cloud\n");
+    BytebeamLogger::Error(__FILE__, __func__, "publish action progress abort, bytebeam client is not connected to the cloud");
     return false;
   }
 
   if(!publishActionStatus(actionId, progressPercentage, "Progress", "No Error")) {
-    Serial.printf("publish action progress response failed, action_id : %s\n", actionId);
+    BytebeamLogger::Error(__FILE__, __func__, "publish action progress response failed, action_id : %s", actionId);
     return false;
   } else {
-    Serial.printf("publish action progress response success, action_id : %s\n", actionId);
+    BytebeamLogger::Info(__FILE__, __func__, "publish action progress response success, action_id : %s", actionId);
     return true;
   }
 }
@@ -1132,13 +1142,13 @@ boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPerce
 boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::publishToStream() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
-    Serial.printf("publish to stream abort, bytebeam client is not connected to the cloud\n");
+    BytebeamLogger::Error(__FILE__, __func__, "publish to stream abort, bytebeam client is not connected to the cloud");
     return false;
   }
 
@@ -1148,14 +1158,12 @@ boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) 
   int tempVar = snprintf(topic, maxLen,  "/tenants/%s/devices/%s/events/%s/jsonarray", this->projectId, this->deviceId, streamName);
 
   if(tempVar >= maxLen) {
-    Serial.println("publish topic size exceeded buffer size");
+    BytebeamLogger::Error(__FILE__, __func__, "publish topic size exceeded buffer size");
     return false;
   }
 
-#if DEBUG_BYTEBEAM_ARDUINO
-  Serial.println(topic);
-  Serial.println(payload);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "topic : %s", topic);
+  BytebeamLogger::Debug(__FILE__, __func__, "payload : %s", payload);
 
   return publish(topic, payload);
 }
@@ -1163,12 +1171,12 @@ boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) 
 boolean BytebeamArduino::end() {
   // client should be active and if not just log the info to serial and abort :)
   if(!this->isClientActive) {
-    Serial.println("BytebeamArduino::end() ---> bytebeam client is not active yet, begin the bytebeam client");
+    BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
     return false;
   }
 
   if(!BytebeamTime.end()) {
-    Serial.println("end abort, time client end failed...\n");
+    BytebeamLogger::Error(__FILE__, __func__, "End abort, time client end failed.\n");
     return false;
   }
 
@@ -1197,13 +1205,12 @@ boolean BytebeamArduino::end() {
   clearBytebeamClient();
 
   // log bytebeam client duration to serial :)
-  Serial.print("Bytebeam Client Duration : ");
-  Serial.print(BytebeamTime.durationMillis);
-  Serial.println("ms");
+  BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client Duration : %d ms", BytebeamTime.durationMillis);
 
+  // this flag marks the client de-initialization
   this->isClientActive = false;
 
-  Serial.println("Bytebeam Client Deactivated Successfully !\n");
+  BytebeamLogger::Info(__FILE__, __func__, "Bytebeam Client De-Initialized Successfully !\n");
 
   return true;
 }
@@ -1215,19 +1222,19 @@ boolean BytebeamArduino::end() {
     //
 
     if(!BytebeamOTA.updateFirmware(otaPayloadStr, actionId)) {
-      Serial.println("Firmware Upgrade Failed.");
+      BytebeamLogger::Error(__FILE__, __func__, "Firmware Upgrade Failed.");
 
       // clear OTA information from RAM
       BytebeamOTA.clearOTAInfoFromRAM();
 
       // publish firmware update failure message to cloud
       if(!Bytebeam.publishActionFailed(actionId)) {
-        Serial.println("failed to publish negative response for firmware upgarde failure");
+        BytebeamLogger::Error(__FILE__, __func__, "failed to publish negative response for firmware upgarde failure");
       }
 
       return -1;
     } else {
-      Serial.println("Firmware Upgrade Success.");
+      BytebeamLogger::Info(__FILE__, __func__, "Firmware Upgrade Success.");
 
       // save the OTA information in flash
       BytebeamOTA.saveOTAInfo();
@@ -1242,7 +1249,7 @@ boolean BytebeamArduino::end() {
   boolean BytebeamArduino::enableOTA() {
     // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
-      Serial.println("BytebeamArduino::enableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
+      BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
       return false;
     }
 
@@ -1257,12 +1264,14 @@ boolean BytebeamArduino::end() {
 
     // add the OTA action handler
     if(!addActionHandler(handleFirmwareUpdate, "update_firmware")) {
-      Serial.println("OTA Enable Failed.");
+      BytebeamLogger::Error(__FILE__, __func__, "OTA Enable Failed.");
       return false;
     }
 
+    // this flag marks the OTA disabled
     this->isOTAEnable = true;
-    Serial.println("OTA Enable Success.");
+
+    BytebeamLogger::Info(__FILE__, __func__, "OTA Enable Success.");
 
     return true;
   }
@@ -1270,30 +1279,24 @@ boolean BytebeamArduino::end() {
   boolean BytebeamArduino::isOTAEnabled() {
     // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
-      Serial.println("BytebeamArduino::isOTAEnabled() ---> bytebeam client is not active yet, begin the bytebeam client");
+      BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
       return false;
     }
 
     // return the OTA status i.e enabled or disabled
-    if(!this->isOTAEnable) {
-      Serial.println("OTA is Disabled.");
-      return false;
-    } else {
-      Serial.println("OTA is Enabled.");
-      return true;
-    }
+    return this->isOTAEnable;
   }
 
   boolean BytebeamArduino::disableOTA() {
     // client should be active and if not just log the info to serial and abort :)
     if(!this->isClientActive) {
-      Serial.println("BytebeamArduino::disableOTA() ---> bytebeam client is not active yet, begin the bytebeam client");
+      BytebeamLogger::Error(__FILE__, __func__, "Bytebeam client is not initialized.");
       return false;
     }
 
     // before going ahead make sure OTA is enabled
     if(!this->isOTAEnable) {
-      Serial.println("BytebeamArduino::disableOTA() ---> OTA is not enabled yet, enable the OTA");
+      BytebeamLogger::Error(__FILE__, __func__, "Bytebeam OTA is not enabled.");
       return false;
     }
 
@@ -1302,15 +1305,18 @@ boolean BytebeamArduino::end() {
 
     // remove the OTA action handler
     if(!removeActionHandler("update_firmware")) {
-      Serial.println("OTA Disable Failed.");
+      BytebeamLogger::Error(__FILE__, __func__, "OTA Disable Failed.");
       return false;
     }
 
+    // this flag marks the OTA disabled
     this->isOTAEnable = false;
-    Serial.println("OTA Disable Success.");
+
+    BytebeamLogger::Info(__FILE__, __func__, "OTA Disable Success.");
 
     return true;
   }
 #endif
 
 BytebeamArduino Bytebeam;
+BytebeamLogger::DebugLevel BytebeamLogger::logLevel = BytebeamLogger::LOG_WARN;

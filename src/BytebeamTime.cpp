@@ -1,4 +1,5 @@
 #include "BytebeamTime.h"
+#include "BytebeamLogger.h"
 
 BytebeamTime::BytebeamTime()
     #ifdef BYTEBEAM_ARDUINO_USE_WIFI
@@ -21,7 +22,7 @@ BytebeamTime::~BytebeamTime() {
     // Nothing much to do here, just print the log :)
     //
 
-    Serial.println("I am BytebeamTime::~BytebeamTime()");
+    BytebeamLogger::Info(__FILE__, __func__, "I am BytebeamTime::~BytebeamTime()");
 }
 
 #ifdef BYTEBEAM_ARDUINO_USE_MODEM
@@ -45,18 +46,20 @@ boolean BytebeamTime::begin() {
 
     // get the epoch millis
     if(!getEpochMillis()) {
-        Serial.println("failed to get epoch millis");
+        BytebeamLogger::Error(__FILE__, __func__, "failed to get epoch millis");
         return false;
     }
 
     // save the begin epoch millis
     this->beginMillis = this->nowMillis;
 
+    BytebeamLogger::Debug(__FILE__, __func__, "beginMillis : %llu", this->beginMillis);
+
     // reset the durationMillis i.e we will start a new session
     this->durationMillis = 0;
 
     // log begin information to serial :)
-    Serial.println("TIME : Client begin! ");
+    BytebeamLogger::Info(__FILE__, __func__, "TIME : Client begin! ");
 
     return true;
 }
@@ -74,6 +77,8 @@ boolean BytebeamTime::getEpochMillis() {
     // will give the time in this format "YY/MM/DD,HH:MM:SS"
     String dateTime = this->modem->getGSMDateTime(DATE_FULL);
 
+    BytebeamLogger::Debug(__FILE__, __func__, "dateTime : %s", dateTime.c_str());
+
     struct tm tm;
     memset(&tm, 0, sizeof(tm));
 
@@ -81,17 +86,9 @@ boolean BytebeamTime::getEpochMillis() {
     tm.tm_mon  = dateTime.substring(3,5).toInt() - 1;
     tm.tm_mday = dateTime.substring(6,8).toInt();
 
-    // Serial.println(tm.tm_year);
-    // Serial.println(tm.tm_mon);
-    // Serial.println(tm.tm_mday);
-
     tm.tm_hour = dateTime.substring(9,11).toInt();
     tm.tm_min  = dateTime.substring(12,14).toInt();
     tm.tm_sec  = dateTime.substring(15,17).toInt();
-
-    // Serial.println(tm.tm_hour);
-    // Serial.println(tm.tm_min);
-    // Serial.println(tm.tm_sec);
 
     time_t time;
     time = mktime(&tm) - 19800;   // GMT +5:30h
@@ -103,8 +100,8 @@ boolean BytebeamTime::getEpochMillis() {
     // save the epoch millis
     this->nowMillis = timeMillis;
 
-    // Serial.println(prevMillis);
-    // Serial.println(nowMillis);
+    BytebeamLogger::Debug(__FILE__, __func__, "prevMillis : %llu", this->prevMillis);
+    BytebeamLogger::Debug(__FILE__, __func__, "nowMillis : %llu", this->nowMillis);
 
     unsigned long long threshold = 1000;
 
@@ -112,11 +109,11 @@ boolean BytebeamTime::getEpochMillis() {
     if(this->prevMillis > this->nowMillis) {
         // fix : taking threshold to over come the override that happens when new millis cross high in MSB
         if(this->prevMillis > this->nowMillis + threshold) {
-            Serial.println("failed to obtain time");
+            BytebeamLogger::Error(__FILE__, __func__, "failed to obtain time");
             return false;
         } else {
             this->nowMillis += threshold;
-            // Serial.println("threshold added to epoch millis");
+            BytebeamLogger::Debug(__FILE__, __func__, "threshold added to epoch millis");
         }
     }
 
@@ -129,7 +126,7 @@ boolean BytebeamTime::getEpochMillis() {
 boolean BytebeamTime::end() {
     // get the epoch millis
     if(!getEpochMillis()) {
-        Serial.println("failed to get epoch millis");
+        BytebeamLogger::Error(__FILE__, __func__, "failed to get epoch millis");
         return false;
     }
 
@@ -138,6 +135,9 @@ boolean BytebeamTime::end() {
 
     // calculate the duration epoch millis
     this->durationMillis = this->endMillis - this->beginMillis;
+
+    BytebeamLogger::Debug(__FILE__, __func__, "endMillis : %llu", this->endMillis);
+    BytebeamLogger::Debug(__FILE__, __func__, "durationMillis : %llu", this->durationMillis);
     
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
     // end the time client
@@ -151,7 +151,7 @@ boolean BytebeamTime::end() {
     this->endMillis = 0;
 
     // log end information to serial :)
-    Serial.println("TIME : Client end! ");
+    BytebeamLogger::Info(__FILE__, __func__, "TIME : Client end! ");
 
     return true;
 }

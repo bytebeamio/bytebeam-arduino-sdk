@@ -1,15 +1,16 @@
 #include "BytebeamOTA.h"
+#include "BytebeamLogger.h"
 
 #if BYTEBEAM_OTA_ENABLE
 
 static char tempOtaActionId[BYTEBEAM_OTA_ACTION_ID_STR_LEN] = "";
 
 void BytebeamUpdateStarted() {
-  Serial.println("CALLBACK:  HTTP update process started");
+  BytebeamLogger::Warn(__FILE__, __func__, "CALLBACK:  HTTP update process started");
 }
 
 void BytebeamUpdateFinished() {
-  Serial.println("CALLBACK:  HTTP update process finished");
+  BytebeamLogger::Warn(__FILE__, __func__, "CALLBACK:  HTTP update process finished");
 }
 
 void BytebeamUpdateProgress(int cur, int total) {
@@ -17,18 +18,16 @@ void BytebeamUpdateProgress(int cur, int total) {
   static int percentOffset = 10;
   static int progressPercent = 0;
 
-  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes\n", cur, total);
+  BytebeamLogger::Warn(__FILE__, __func__, "CALLBACK:  HTTP update process at %d of %d bytes", cur, total);
   progressPercent = (((float)cur / (float)total) * 100.00);
 
   if(progressPercent == loopVar) {
-    #if DEBUG_BYTEBEAM_OTA
-      Serial.println(progressPercent);
-      Serial.println(tempOtaActionId);
-    #endif
+    BytebeamLogger::Debug(__FILE__, __func__, "progressPercent : %d", progressPercent);
+    BytebeamLogger::Debug(__FILE__, __func__, "tempOtaActionId : %s", tempOtaActionId);
 
     // publish the OTA progress
     if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent)) {
-      Serial.println("failed to publish ota progress status...");
+      BytebeamLogger::Error(__FILE__, __func__, "Failed to publish OTA progress status.");
     }
 
     if(loopVar == 100) {
@@ -43,7 +42,7 @@ void BytebeamUpdateProgress(int cur, int total) {
 }
 
 void BytebeamUpdateError(int err) {
-  Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
+  BytebeamLogger::Warn(__FILE__, __func__, "CALLBACK:  HTTP update fatal error code %d", err);
 }
 
 boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
@@ -51,13 +50,13 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
   DeserializationError err = deserializeJson(otaPayloadJson, otaPayloadStr);
 
   if(err) {
-    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
+    BytebeamLogger::Error(__FILE__, __func__, "deserializeJson() failed : %s", err.c_str());
     return false;
   } else {
-    Serial.println("deserializeJson() success");
+    BytebeamLogger::Info(__FILE__, __func__, "deserializeJson() success");
   }
 
-  Serial.println("Obtaining ota variables");
+  BytebeamLogger::Info(__FILE__, __func__, "Obtaining ota variables");
 
   uint32_t length     = otaPayloadJson["content-length"];
   bool status         = otaPayloadJson["status"];
@@ -71,33 +70,32 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
   int argIterator = 0;
   for(argIterator = 0; argIterator < numArg; argIterator++) {
     if(argsStr[argIterator] == NULL) {
-      Serial.printf("- failed to obtain %s\n", argsName[argIterator]);
+      BytebeamLogger::Error(__FILE__, __func__, "- failed to obtain %s", argsName[argIterator]);
       return false;
     }
   }
-  Serial.println("- obtain ota variables");
+  BytebeamLogger::Info(__FILE__, __func__, "- obtain ota variables");
 
-#if DEBUG_BYTEBEAM_OTA
-  Serial.println(length);
-  Serial.println(status);
-  Serial.println(url);
-  Serial.println(version);
-#endif
+  BytebeamLogger::Debug(__FILE__, __func__, "length : %d", length);
+  BytebeamLogger::Debug(__FILE__, __func__, "status : %d", status);
+  BytebeamLogger::Debug(__FILE__, __func__, "url : %s", url);
+  BytebeamLogger::Debug(__FILE__, __func__, "version : %s", version);
 
   int maxLen = BYTEBEAM_OTA_URL_STR_LEN;
   int tempVar = snprintf(urlStringReturn, maxLen,  "%s", url);
 
   if(tempVar >= maxLen) {
-    Serial.println("firmware upgrade url size exceeded buffer size");
+    BytebeamLogger::Error(__FILE__, __func__, "Firmware upgrade url size exceeded buffer size");
     return false;
   }
 
-  Serial.printf("constructed url is %s\n", url);
+  BytebeamLogger::Info(__FILE__, __func__, "Constructed url is %s", urlStringReturn);
+
   return true;
 }
 
 boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
-  Serial.println("Performing OTA...");
+  BytebeamLogger::Warn(__FILE__, __func__, "Performing OTA...");
 
   // save the OTA information in RAM
   this->otaUpdateFlag = true;
@@ -121,15 +119,15 @@ boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
-      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
+      BytebeamLogger::Info(__FILE__, __func__, "HTTP_UPDATE_FAILED Error (%d): %s", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
       break;
 
     case HTTP_UPDATE_NO_UPDATES:
-      Serial.println("HTTP_UPDATE_NO_UPDATES");
+      BytebeamLogger::Info(__FILE__, __func__, "HTTP_UPDATE_NO_UPDATES");
       break;
 
     case HTTP_UPDATE_OK:
-      Serial.println("HTTP_UPDATE_OK");
+      BytebeamLogger::Info(__FILE__, __func__, "HTTP_UPDATE_OK");
       break;
   }
 
@@ -158,7 +156,7 @@ BytebeamOTA::~BytebeamOTA() {
   // Nothing much to do here, just print the log to serial :)
   //
 
-  Serial.println("I am BytebeamOTA::~BytebeamOTA()");
+  BytebeamLogger::Info(__FILE__, __func__, "I am BytebeamOTA::~BytebeamOTA()");
 }
 
 #ifdef BYTEBEAM_ARDUINO_USE_MODEM
@@ -206,7 +204,7 @@ void BytebeamOTA::saveOTAInfo() {
   EEPROM.end();
 #endif
 
-  Serial.println("NVS: Saving OTA Information");
+  BytebeamLogger::Info(__FILE__, __func__, "NVS: Saving OTA Information");
 }
 
 void BytebeamOTA::retrieveOTAInfo() {
@@ -244,7 +242,7 @@ void BytebeamOTA::retrieveOTAInfo() {
   EEPROM.end();
 #endif
 
-  Serial.println("NVS: Retrieving OTA Information");
+  BytebeamLogger::Info(__FILE__, __func__, "NVS: Retrieving OTA Information");
 }
 
 void BytebeamOTA::clearOTAInfoFromFlash() {
@@ -278,7 +276,7 @@ void BytebeamOTA::clearOTAInfoFromFlash() {
   EEPROM.end();
 #endif
 
-  Serial.println("NVS: Clearing OTA Information");
+  BytebeamLogger::Info(__FILE__, __func__, "NVS: Clearing OTA Information From Flash");
 }
 
 void BytebeamOTA::clearOTAInfoFromRAM() {
@@ -288,6 +286,8 @@ void BytebeamOTA::clearOTAInfoFromRAM() {
 
   this->otaUpdateFlag = false;
   memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
+
+  BytebeamLogger::Info(__FILE__, __func__, "NVS: Clearing OTA Information From RAM");
 }
 
 void BytebeamOTA::setupSecureOTAClient(const void* caCert, const void* clientCert, const void* clientKey) {
@@ -330,12 +330,12 @@ boolean BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
   char constructedUrl[BYTEBEAM_OTA_URL_STR_LEN] = { 0 };
 
   if(!parseOTAJson(otaPayloadStr, constructedUrl)) {
-    Serial.println("OTA Fail, Error while parsing the OTA Json");
+    BytebeamLogger::Error(__FILE__, __func__, "OTA failed, error while parsing the OTA json");
     return false;
   }
 
   if(!performOTA(actionId, constructedUrl)) {
-    Serial.println("OTA Fail, Error while performing HTTPS OTA");
+    BytebeamLogger::Error(__FILE__, __func__, "OTA failed, error while performing HTTPS OTA");
     return false;
   }
 

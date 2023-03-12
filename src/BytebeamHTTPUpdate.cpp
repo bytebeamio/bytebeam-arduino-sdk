@@ -1,4 +1,5 @@
 #include "BytebeamHTTPUpdate.h"
+#include "BytebeamLogger.h"
 
 #if defined(BYTEBEAM_ARDUINO_ARCH_ESP32) && defined(BYTEBEAM_ARDUINO_USE_MODEM)
 
@@ -13,7 +14,7 @@ bool BytebeamHTTPUpdate::runUpdate(Stream& in, uint32_t size) {
     _lastError = Update.getError();
     Update.printError(error);
     error.trim(); // remove line ending
-    Serial.printf("Update.begin failed! (%s)\n", error.c_str());
+    BytebeamLogger::Error(__FILE__, __func__, "Update.begin failed! (%s)", error.c_str());
     return false;
   }
 
@@ -28,7 +29,7 @@ bool BytebeamHTTPUpdate::runUpdate(Stream& in, uint32_t size) {
     _lastError = Update.getError();
     Update.printError(error);
     error.trim(); // remove line ending
-    Serial.printf("Update.writeStream failed! (%s)\n", error.c_str());
+    BytebeamLogger::Error(__FILE__, __func__, "Update.writeStream failed! (%s)", error.c_str());
     return false;
   }
 
@@ -40,7 +41,7 @@ bool BytebeamHTTPUpdate::runUpdate(Stream& in, uint32_t size) {
     _lastError = Update.getError();
     Update.printError(error);
     error.trim(); // remove line ending
-    Serial.printf("Update.end failed! (%s)\n", error.c_str());
+    BytebeamLogger::Error(__FILE__, __func__, "Update.end failed! (%s)", error.c_str());
     return false;
   }
 
@@ -62,7 +63,7 @@ BytebeamHTTPUpdate::~BytebeamHTTPUpdate() {
   // Nothing much to do here, just print the log to serial :)
   //
 
-  Serial.println("I am BytebeamHTTPUpdate::~BytebeamHTTPUpdate()");
+  BytebeamLogger::Info(__FILE__, __func__, "I am BytebeamHTTPUpdate::~BytebeamHTTPUpdate()");
 }
 
 int BytebeamHTTPUpdate::getLastError(void) {
@@ -105,26 +106,23 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
 
   HttpClient http(client, server, port);
 
-  Serial.printf("ESP32 info:\n");
-  Serial.printf(" - free Space: %d\n", ESP.getFreeSketchSpace());
-  Serial.printf(" - current Sketch Size: %d\n", ESP.getSketchSize());
+  BytebeamLogger::Info(__FILE__, __func__, "ESP32 info ::");
+  BytebeamLogger::Info(__FILE__, __func__, " - free Space: %d", ESP.getFreeSketchSpace());
+  BytebeamLogger::Info(__FILE__, __func__, " - current Sketch Size: %d", ESP.getSketchSize());
 
   int statusCode = 0;
   
   if(http.get(resource) == 0) {
     // read status code
     statusCode = http.responseStatusCode();
-    Serial.print("Status code : ");
-    Serial.println(statusCode);
+    BytebeamLogger::Info(__FILE__, __func__, "HTTPS Status code : %d", statusCode);
 
     // read headers
     while(http.headerAvailable()) {
-      Serial.print(http.readHeaderName());
-      Serial.print(" : ");
-      Serial.println(http.readHeaderValue());
+      BytebeamLogger::Info(__FILE__, __func__, "%s : %s", http.readHeaderName().c_str(), http.readHeaderValue().c_str());
     }
   } else {
-    Serial.println("Unable to connect");
+    BytebeamLogger::Error(__FILE__, __func__, "Unable to connect to HTTPS Server");
     return HTTP_UPDATE_FAILED;
   }
 
@@ -133,8 +131,7 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
 
   // read content length
   len = http.contentLength();
-  Serial.print("Content Length : ");
-  Serial.println(len);
+  BytebeamLogger::Info(__FILE__, __func__, "Content Length : %d", len);
 
   ///< OK (Start Update)
   if(statusCode == 200) {
@@ -145,12 +142,13 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
       int sketchFreeSpace = ESP.getFreeSketchSpace();
       if(!sketchFreeSpace){
         _lastError = HTTP_UE_NO_PARTITION;
+        BytebeamLogger::Error(__FILE__, __func__, "No FreeSketchSpace");
         return HTTP_UPDATE_FAILED;
       }
 
       // make sure we have enough space available
       if(len > sketchFreeSpace) {
-        Serial.printf("FreeSketchSpace to low (%d) needed: %d\n", sketchFreeSpace, len);
+        BytebeamLogger::Error(__FILE__, __func__, "FreeSketchSpace to low (%d) needed: %d", sketchFreeSpace, len);
         startUpdate = false;
       }
 
@@ -164,7 +162,7 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
         }
 
         if(http.peek() != 0xE9) {
-          Serial.println("Magic header does not start with 0xE9\n");
+          BytebeamLogger::Error(__FILE__, __func__, "Magic header does not start with 0xE9");
           _lastError = HTTP_UE_BIN_VERIFY_HEADER_FAILED;
           http.stop();
           return HTTP_UPDATE_FAILED;
@@ -172,7 +170,7 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
 
         if(runUpdate(http, len)) {
             ret = HTTP_UPDATE_OK;
-            log_d("Update ok\n");
+            BytebeamLogger::Debug(__FILE__, __func__, "Update ok");
             http.stop();
 
             // Warn main app we're all done
@@ -181,23 +179,23 @@ t_httpUpdate_return BytebeamHTTPUpdate::update(Client& client, const String& url
             }
 
             if(_rebootOnUpdate) {
-              Serial.println("Rebooting...");
+              BytebeamLogger::Info(__FILE__, __func__, "Rebooting...");
               ESP.restart();
             }
         } else {
             ret = HTTP_UPDATE_FAILED;
-            Serial.println("Update failed\n");
+            BytebeamLogger::Debug(__FILE__, __func__, "Update failed");
         }
       }
     } else {
       _lastError = HTTP_UE_SERVER_NOT_REPORT_SIZE;
       ret = HTTP_UPDATE_FAILED;
-      Serial.println("Content-Length was 0 or wasn't set by Server?!\n");
+      BytebeamLogger::Error(__FILE__, __func__, "Content-Length was 0 or wasn't set by Server?!");
     }
   } else {
     _lastError = statusCode;
     ret = HTTP_UPDATE_FAILED;
-    Serial.printf("HTTP Code is (%d)\n", statusCode);
+    BytebeamLogger::Debug(__FILE__, __func__, "HTTPS Code is (%d)", statusCode);
   }
 
   http.stop();
