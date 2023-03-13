@@ -1,0 +1,6 @@
+.vscode
+.pio/build/project.checksum
+*.dblite
+.pio
+src/CaptivePortal.h5596843329658401802.tmp
+src/src.ino.cpp
