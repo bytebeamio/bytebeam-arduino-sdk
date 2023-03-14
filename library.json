@@ -1,0 +1,42 @@
+{
+  "name": "BytebeamArduino",
+  "version": "1.0.0",
+  "description": "A small Arduino Library for Bytebeam Cloud that just works. This library simplifies the process of communicating with Bytebeam cloud backend.",
+  "keywords": "mqtt, http, gsm, iot, arduino, espressif32, espressif8266, bytebeam, device-management, ota-firmware-updates, cloud-logging",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Mayank Narang",
+      "url": "https://github.com/mayankbytebeam",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytebeamio/bytebeam-arduino-sdk"
+  },
+  "homepage": "https://bytebeam.io/docs/arduino",
+  "frameworks": "arduino",
+  "platforms": [
+    "espressif8266",
+    "espressif32"
+  ],
+  "headers": "BytebeamArduino.h",
+  "dependencies": [
+    {
+      "owner": "knolleary",
+      "name": "PubSubClient",
+      "version": "^2.8"
+    },
+    {
+      "owner": "bblanchon",
+      "name": "ArduinoJson",
+      "version": "^6.20.1"
+    },
+    {
+      "owner": "arduino-libraries",
+      "name": "NTPClient",
+      "version": "^3.2.1"
+    }
+  ]
+} 
