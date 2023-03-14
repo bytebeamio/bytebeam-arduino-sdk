@@ -73,7 +73,15 @@ private:
         // get the module string
         String moduleObj = String(module);
 
-        int startIdx = moduleObj.lastIndexOf('\\') + 1;
+        int startIdx = moduleObj.lastIndexOf('\\');
+
+        //fix for linux            
+        if (startIdx == -1){
+            startIdx = moduleObj.lastIndexOf('/');
+        }
+
+        startIdx += 1;
+
         int endIdx = moduleObj.lastIndexOf('.');
         
         moduleObj = moduleObj.substring(startIdx, endIdx);
