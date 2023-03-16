@@ -1,6 +1,7 @@
 # Idea & Design
 
 - [Bharadwaaj Ramakrishnan](https://github.com/bharadwaaj)
+- [Gautam BT](https://github.com/gautambt)
 
 # Authors
 
@@ -12,4 +13,5 @@
 
 # Contributors
 
-no contribution yet, please feel free to remove this line and add your name instaed if you have contributed to the library :)
+- [Mayank Narang](https://github.com/mayankbytebeam)
+- [Vaibhav Sharma](https://github.com/vbshightime)
