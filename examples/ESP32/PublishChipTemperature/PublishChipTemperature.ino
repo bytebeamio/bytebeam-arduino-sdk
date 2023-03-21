@@ -84,7 +84,7 @@ unsigned long long getEpochMillis() {
 }
 
 // function to publish chip temperature to strem
-void publishChipTemperature(char* stream) {
+bool publishChipTemperature(char* stream) {
   static int sequence = 0;
   unsigned long long milliseconds = 0;
   uint8_t chipTemp = 0;
