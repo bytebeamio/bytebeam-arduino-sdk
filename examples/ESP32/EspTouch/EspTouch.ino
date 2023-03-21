@@ -82,7 +82,7 @@ unsigned long long getEpochMillis() {
 }
 
 // function to publish esp touch value to esp touch stream
-boolean publishEspTouchValues() {
+bool publishEspTouchValues() {
   static int sequence = 0;
   unsigned long long milliseconds = 0;
 
