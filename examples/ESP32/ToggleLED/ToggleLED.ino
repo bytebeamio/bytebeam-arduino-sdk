@@ -89,7 +89,7 @@ unsigned long long getEpochMillis() {
 }
 
 // function to publish payload to device shadow
-boolean publishToDeviceShadow() {
+bool publishToDeviceShadow() {
   static int sequence = 0;
   unsigned long long milliseconds = 0;
   char ledStatus[200] = "";
