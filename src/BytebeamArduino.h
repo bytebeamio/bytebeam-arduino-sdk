@@ -100,7 +100,7 @@ public:
                         BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
-    boolean isBegined();
+    boolean isInitialized();
     boolean loop();
     boolean isConnected();
     boolean handleActions(char* actionReceivedStr);

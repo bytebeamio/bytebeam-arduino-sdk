@@ -732,7 +732,7 @@ BytebeamArduino::~BytebeamArduino() {
   }
 #endif
 
-boolean BytebeamArduino::isBegined() {
+boolean BytebeamArduino::isInitialized() {
   // return the client status i.e initialized or de-initialized
   return this->isClientActive;
 }
