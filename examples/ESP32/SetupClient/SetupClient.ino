@@ -77,18 +77,9 @@ void setup() {
   }
 
   //
-  // If above call is successfull then your bytebeam client is now configured for the use
+  // If above call is successfull then the bytebeam client is now configured for the use
   // You can always check for the logs in serial monitor for the status of the above call
   //
-
-  // check if bytebeam client is initialized or deinitialized
-  bool beginStatus = Bytebeam.isBegined();
-
-  if(!beginStatus) {
-    Serial.println("Bytebeam Client is Deinitialized.");
-  } else {
-    Serial.println("Bytebeam Client is Initialized.");
-  }
 
   // check if bytebeam client is connected or disconnected
   bool connectionStatus = Bytebeam.isConnected();

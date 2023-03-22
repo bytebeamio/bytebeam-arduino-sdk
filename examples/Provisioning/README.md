@@ -16,3 +16,5 @@ Default Configuration,
 You can always override the default configurations and here are steps to do so,
  - Provision your device with the required configurations
  - Specify the same configurations in your sketch via `begin` method.
+
+ See [Advance SDK Configurations](https://docs.bytebeam.io/docs/advance-sdk-configurations) for the implementation details.
