@@ -36,7 +36,7 @@ public:
 
     // public functions
     void enableCloudLogging();
-    boolean isCloudLoggingEnabled();
+    bool isCloudLoggingEnabled();
     void disableCloudLogging();
 
     void setLogStream(char* stream);
@@ -74,7 +74,7 @@ private:
     void logPrint(bytebeamLogLevel_t level, const char* tag, const char* message);
     void logPrintln(bytebeamLogLevel_t level, const char* tag, const char* message);
     void logPrintf(bytebeamLogLevel_t level, const char* tag, const char* fmt, va_list args);
-    boolean logPublish(const char* level, const char* tag, const char* message);
+    bool logPublish(const char* level, const char* tag, const char* message);
 
     // private variables
     BytebeamTime* Time;

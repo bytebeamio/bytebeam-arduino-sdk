@@ -87,7 +87,7 @@ void BytebeamLog::logPrintf(bytebeamLogLevel_t level, const char* tag, const cha
   logPrint(level, tag, msgStr);
 }
 
-boolean BytebeamLog::logPublish(const char* level, const char* tag, const char* message) {
+bool BytebeamLog::logPublish(const char* level, const char* tag, const char* message) {
   //
   // Publish the log info to cloud :)
   //
@@ -147,7 +147,7 @@ void BytebeamLog::enableCloudLogging() {
   this->isCloudLoggingEnable = true;
 }
 
-boolean BytebeamLog::isCloudLoggingEnabled() {
+bool BytebeamLog::isCloudLoggingEnabled() {
   return this->isCloudLoggingEnable;
 }
 

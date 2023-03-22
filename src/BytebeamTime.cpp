@@ -31,7 +31,7 @@ BytebeamTime::~BytebeamTime() {
     }
 #endif
 
-boolean BytebeamTime::begin() {
+bool BytebeamTime::begin() {
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
     // begin the time client
     timeClient.begin();
@@ -64,7 +64,7 @@ boolean BytebeamTime::begin() {
     return true;
 }
 
-boolean BytebeamTime::getEpochMillis() {
+bool BytebeamTime::getEpochMillis() {
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
     // update the time client
     timeClient.update();
@@ -123,7 +123,7 @@ boolean BytebeamTime::getEpochMillis() {
     return true;
 }
 
-boolean BytebeamTime::end() {
+bool BytebeamTime::end() {
     // get the epoch millis
     if(!getEpochMillis()) {
         BytebeamLogger::Error(__FILE__, __func__, "failed to get epoch millis");

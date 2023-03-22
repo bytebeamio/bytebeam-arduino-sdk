@@ -16,9 +16,9 @@ public:
         void setModemInstance(TinyGsm* modem);
     #endif
 
-    boolean begin();
-    boolean getEpochMillis();
-    boolean end();
+    bool begin();
+    bool getEpochMillis();
+    bool end();
 
     // public variables
     unsigned long long beginMillis;

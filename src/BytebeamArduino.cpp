@@ -111,7 +111,7 @@ void BytebeamArduino::initActionHandlerArray() {
   this->actionFuncsHandlerIdx = -1;
 }
 
-boolean BytebeamArduino::subscribe(const char* topic, uint8_t qos) {
+bool BytebeamArduino::subscribe(const char* topic, uint8_t qos) {
   //
   // skipping the connection checking here as we are not calling this function directly
   //
@@ -125,7 +125,7 @@ boolean BytebeamArduino::subscribe(const char* topic, uint8_t qos) {
   }
 }
 
-boolean BytebeamArduino::unsubscribe(const char* topic) {
+bool BytebeamArduino::unsubscribe(const char* topic) {
   //
   // skipping the connection checking here as we are not calling this function directly
   //
@@ -139,7 +139,7 @@ boolean BytebeamArduino::unsubscribe(const char* topic) {
   }
 }
 
-boolean BytebeamArduino::publish(const char* topic, const char* payload) {
+bool BytebeamArduino::publish(const char* topic, const char* payload) {
   //
   // skipping the connection checking here as we are not calling this function directly
   //
@@ -153,7 +153,7 @@ boolean BytebeamArduino::publish(const char* topic, const char* payload) {
   }
 }
 
-boolean BytebeamArduino::subscribeToActions() {
+bool BytebeamArduino::subscribeToActions() {
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
     BytebeamLogger::Error(__FILE__, __func__, "subscribe to actions failed, bytebeam client is not connected to the cloud");
@@ -177,7 +177,7 @@ boolean BytebeamArduino::subscribeToActions() {
   return subscribe(topic, qos);
 }
 
-boolean BytebeamArduino::unsubscribeToActions() {
+bool BytebeamArduino::unsubscribeToActions() {
   // before going ahead make sure you are connected
   if(!PubSubClient::connected()) {
     BytebeamLogger::Error(__FILE__, __func__, "unsubscribe to actions abort, bytebeam client is not connected to the cloud");
@@ -199,7 +199,7 @@ boolean BytebeamArduino::unsubscribeToActions() {
   return unsubscribe(topic);
 }
 
-boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercentage, char* status, char* error) {
+bool BytebeamArduino::publishActionStatus(char* actionId, int progressPercentage, char* status, char* error) {
   //
   // skipping the connection checking here as we are not calling this function directly
   //
@@ -247,7 +247,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 }
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
-  boolean BytebeamArduino::readDeviceConfigFile() {
+  bool BytebeamArduino::readDeviceConfigFile() {
 
     /* This file system pointer will store the address of the selected file system, So after begin and end operations
      * we can utilize this file system pointer to do the file operations.
@@ -413,7 +413,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   }
 #endif
 
-boolean BytebeamArduino::parseDeviceConfigFile() {
+bool BytebeamArduino::parseDeviceConfigFile() {
   // before going ahead make sure you are parsing something
   if(this->deviceConfigStr == NULL) {
     BytebeamLogger::Error(__FILE__, __func__, "device config file is empty");
@@ -468,7 +468,7 @@ boolean BytebeamArduino::parseDeviceConfigFile() {
   return true;
 }
 
-boolean BytebeamArduino::setupBytebeamClient() {
+bool BytebeamArduino::setupBytebeamClient() {
 
   /* Setting up the bytebeam secure wifi client based on the architecture and before this make sure you have
    * the same secure wifi client object inside the class defination.
@@ -565,7 +565,7 @@ void BytebeamArduino::clearBytebeamClient() {
   BytebeamLogger::Info(__FILE__, __func__, "DISCONNECTED");
 }
 
-boolean BytebeamArduino::initSDK() {
+bool BytebeamArduino::initSDK() {
   // It's much better to pump up architecture inforamtion in the very beginning
   printArchitectureInfo();
 
@@ -624,7 +624,7 @@ boolean BytebeamArduino::initSDK() {
   return true;
 }
 
-boolean BytebeamArduino::isInitialized() {
+bool BytebeamArduino::isInitialized() {
   // return the client status i.e initialized or de-initialized
   return this->isClientActive;
 }
@@ -664,7 +664,7 @@ BytebeamArduino::~BytebeamArduino() {
 }
 
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
-  boolean BytebeamArduino::begin( const deviceConfigFileSystem fileSystem, 
+  bool BytebeamArduino::begin( const deviceConfigFileSystem fileSystem, 
                                   const char* fileName, 
                                   BytebeamLogger::DebugLevel level) {
     // set the device config file system
@@ -700,7 +700,7 @@ BytebeamArduino::~BytebeamArduino() {
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-  boolean BytebeamArduino::begin( TinyGsm* modem, 
+  bool BytebeamArduino::begin( TinyGsm* modem, 
                                   const deviceConfigFileSystem fileSystem, 
                                   const char* fileName,
                                   BytebeamLogger::DebugLevel level) {
@@ -745,7 +745,7 @@ BytebeamArduino::~BytebeamArduino() {
   }
 #endif
 
-boolean BytebeamArduino::loop() {
+bool BytebeamArduino::loop() {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -795,7 +795,7 @@ boolean BytebeamArduino::loop() {
   }
 }
 
-boolean BytebeamArduino::isConnected() {
+bool BytebeamArduino::isConnected() {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -806,7 +806,7 @@ boolean BytebeamArduino::isConnected() {
   return PubSubClient::connected();
 }
 
-boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
+bool BytebeamArduino::handleActions(char* actionReceivedStr) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -938,7 +938,7 @@ boolean BytebeamArduino::handleActions(char* actionReceivedStr) {
   return true;
 }
 
-boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
+bool BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -965,7 +965,7 @@ boolean BytebeamArduino::addActionHandler(int (*funcPtr)(char* args, char* actio
   return true;
 }
 
-boolean BytebeamArduino::removeActionHandler(char* actionName) {
+bool BytebeamArduino::removeActionHandler(char* actionName) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -997,7 +997,7 @@ boolean BytebeamArduino::removeActionHandler(char* actionName) {
   }
 }
 
-boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName) {
+bool BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1022,7 +1022,7 @@ boolean BytebeamArduino::updateActionHandler(int (*newFuncPtr)(char* args, char*
   }
 }
 
-boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
+bool BytebeamArduino::isActionHandlerThere(char* actionName) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1047,7 +1047,7 @@ boolean BytebeamArduino::isActionHandlerThere(char* actionName) {
   }
 }
 
-boolean BytebeamArduino::printActionHandlerArray() {
+bool BytebeamArduino::printActionHandlerArray() {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1069,7 +1069,7 @@ boolean BytebeamArduino::printActionHandlerArray() {
   return true;
 }
 
-boolean BytebeamArduino::resetActionHandlerArray() {
+bool BytebeamArduino::resetActionHandlerArray() {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1081,7 +1081,7 @@ boolean BytebeamArduino::resetActionHandlerArray() {
   return true;
 }
 
-boolean BytebeamArduino::publishActionCompleted(char* actionId) {
+bool BytebeamArduino::publishActionCompleted(char* actionId) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1103,7 +1103,7 @@ boolean BytebeamArduino::publishActionCompleted(char* actionId) {
   }
 }
 
-boolean BytebeamArduino::publishActionFailed(char* actionId) {
+bool BytebeamArduino::publishActionFailed(char* actionId) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1125,7 +1125,7 @@ boolean BytebeamArduino::publishActionFailed(char* actionId) {
   }
 }
 
-boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
+bool BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1147,7 +1147,7 @@ boolean BytebeamArduino::publishActionProgress(char* actionId, int progressPerce
   }
 }
 
-boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) {
+bool BytebeamArduino::publishToStream(char* streamName, const char* payload) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1176,7 +1176,7 @@ boolean BytebeamArduino::publishToStream(char* streamName, const char* payload) 
   return publish(topic, payload);
 }
 
-boolean BytebeamArduino::end() {
+bool BytebeamArduino::end() {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1254,7 +1254,7 @@ boolean BytebeamArduino::end() {
     }
   }
 
-  boolean BytebeamArduino::enableOTA() {
+  bool BytebeamArduino::enableOTA() {
     // client should be initialized and if not just log the info to serial and abort :)
     if(!isInitialized()) {
       BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1284,7 +1284,7 @@ boolean BytebeamArduino::end() {
     return true;
   }
 
-  boolean BytebeamArduino::isOTAEnabled() {
+  bool BytebeamArduino::isOTAEnabled() {
     // client should be initialized and if not just log the info to serial and abort :)
     if(!isInitialized()) {
       BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1295,7 +1295,7 @@ boolean BytebeamArduino::end() {
     return this->isOTAEnable;
   }
 
-  boolean BytebeamArduino::disableOTA() {
+  bool BytebeamArduino::disableOTA() {
     // client should be initialized and if not just log the info to serial and abort :)
     if(!isInitialized()) {
       BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");

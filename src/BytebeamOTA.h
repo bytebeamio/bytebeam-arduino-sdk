@@ -37,7 +37,7 @@ public:
     void clearOTAInfoFromRAM();
     void setupSecureOTAClient(const void* caCert, const void* clientCert, const void* clientKey);
     void clearSecureOTAClient();
-    boolean updateFirmware(char* otaPayloadStr, char* actionId);
+    bool updateFirmware(char* otaPayloadStr, char* actionId);
 
     // public variables
     bool otaUpdateFlag;
@@ -45,8 +45,8 @@ public:
 
 private:
     // private functions
-    boolean parseOTAJson(char* otaPayloadStr, char* urlStringReturn);
-    boolean performOTA(char* actionId, char* otaUrl);
+    bool parseOTAJson(char* otaPayloadStr, char* urlStringReturn);
+    bool performOTA(char* actionId, char* otaUrl);
 
     // private variables
     #ifdef BYTEBEAM_ARDUINO_ARCH_ESP32

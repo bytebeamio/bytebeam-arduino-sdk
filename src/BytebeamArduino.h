@@ -88,56 +88,56 @@ public:
 
     // public functions
     #ifdef BYTEBEAM_ARDUINO_USE_WIFI
-        boolean begin(  const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
+        bool begin(  const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
                         const char* fileName = DEVICE_CONFIG_FILE_NAME,
                         BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-        boolean begin(  TinyGsm* modem,
+        bool begin(  TinyGsm* modem,
                         const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
                         const char* fileName = DEVICE_CONFIG_FILE_NAME,
                         BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
-    boolean loop();
-    boolean isConnected();
-    boolean handleActions(char* actionReceivedStr);
-    boolean addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
-    boolean removeActionHandler(char* actionName);
-    boolean updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
-    boolean isActionHandlerThere(char* actionName);
-    boolean printActionHandlerArray();
-    boolean resetActionHandlerArray();
-    boolean publishActionCompleted(char* actionId);
-    boolean publishActionFailed(char* actionId);
-    boolean publishActionProgress(char* actionId, int progressPercentage);
-    boolean publishToStream(char* streamName, const char* payload);
+    bool loop();
+    bool isConnected();
+    bool handleActions(char* actionReceivedStr);
+    bool addActionHandler(int (*funcPtr)(char* args, char* actionId), char* actionName);
+    bool removeActionHandler(char* actionName);
+    bool updateActionHandler(int (*newFuncPtr)(char* args, char* actionId), char* actionName);
+    bool isActionHandlerThere(char* actionName);
+    bool printActionHandlerArray();
+    bool resetActionHandlerArray();
+    bool publishActionCompleted(char* actionId);
+    bool publishActionFailed(char* actionId);
+    bool publishActionProgress(char* actionId, int progressPercentage);
+    bool publishToStream(char* streamName, const char* payload);
     
     #if BYTEBEAM_OTA_ENABLE
-        boolean enableOTA();
-        boolean isOTAEnabled();
-        boolean disableOTA();
+        bool enableOTA();
+        bool isOTAEnabled();
+        bool disableOTA();
     #endif
 
-    boolean end();
+    bool end();
     
 private:
     // private functions
     void printArchitectureInfo();
     void initActionHandlerArray();
-    boolean subscribe(const char* topic, uint8_t qos);
-    boolean unsubscribe(const char* topic);
-    boolean publish(const char* topic, const char* payload);
-    boolean subscribeToActions();
-    boolean unsubscribeToActions();
-    boolean publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
-    boolean readDeviceConfigFile();
-    boolean parseDeviceConfigFile();
-    boolean setupBytebeamClient();
+    bool subscribe(const char* topic, uint8_t qos);
+    bool unsubscribe(const char* topic);
+    bool publish(const char* topic, const char* payload);
+    bool subscribeToActions();
+    bool unsubscribeToActions();
+    bool publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
+    bool readDeviceConfigFile();
+    bool parseDeviceConfigFile();
+    bool setupBytebeamClient();
     void clearBytebeamClient();
-    boolean initSDK();
-    boolean isInitialized();
+    bool initSDK();
+    bool isInitialized();
 
     // private variables
     int mqttPort;

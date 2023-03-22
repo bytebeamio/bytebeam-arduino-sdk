@@ -45,7 +45,7 @@ void BytebeamUpdateError(int err) {
   BytebeamLogger::Warn(__FILE__, __func__, "CALLBACK:  HTTP update fatal error code %d", err);
 }
 
-boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
+bool BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
   StaticJsonDocument<1024> otaPayloadJson;
   DeserializationError err = deserializeJson(otaPayloadJson, otaPayloadStr);
 
@@ -94,7 +94,7 @@ boolean BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
   return true;
 }
 
-boolean BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
+bool BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
   BytebeamLogger::Warn(__FILE__, __func__, "Performing OTA...");
 
   // save the OTA information in RAM
@@ -326,7 +326,7 @@ void BytebeamOTA::clearSecureOTAClient() {
 #endif
 }
 
-boolean BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
+bool BytebeamOTA::updateFirmware(char* otaPayloadStr, char* actionId) {
   char constructedUrl[BYTEBEAM_OTA_URL_STR_LEN] = { 0 };
 
   if(!parseOTAJson(otaPayloadStr, constructedUrl)) {
