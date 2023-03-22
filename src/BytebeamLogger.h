@@ -6,6 +6,7 @@
 class BytebeamLogger {
 public:    
     enum DebugLevel{
+        LOG_NONE,
         LOG_ERROR,
         LOG_WARN,
         LOG_INFO,
@@ -23,6 +24,11 @@ public:
 
     static void setLogLevel(DebugLevel level) {
         logLevel = level;
+    }
+
+    template <typename... Args>
+    static void None(const char* module, const char* func, const char* message, Args... args) {
+        print(LOG_NONE, module, func, message, args...);
     }
 
     template <typename... Args>
@@ -61,6 +67,7 @@ private:
 
         // print the debug level
         switch (level) {
+            case LOG_NONE   : Serial.print("LOG_NONE"); break;
             case LOG_ERROR  : Serial.print("LOG_ERROR"); break;
             case LOG_WARN   : Serial.print("LOG_WARN");  break;
             case LOG_INFO   : Serial.print("LOG_INFO");  break;
