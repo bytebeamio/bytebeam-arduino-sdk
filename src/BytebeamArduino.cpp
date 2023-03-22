@@ -247,14 +247,14 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 }
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
-  boolean BytebeamArduino::readDeviceConfigFile(const deviceConfigFileSystem fileSystem, const char* fileName) {
+  boolean BytebeamArduino::readDeviceConfigFile() {
 
     /* This file system pointer will store the address of the selected file system, So after begin and end operations
      * we can utilize this file system pointer to do the file operations.
      */
     fs::FS* ptrToFS = NULL;
 
-    switch(fileSystem) {
+    switch(this->fileSystem) {
 
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
@@ -312,7 +312,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         BytebeamLogger::Info(__FILE__, __func__, "SD file system detected !");
 
         // Just print the log and return :)
-        BytebeamLogger::Info(__FILE__, __func__, "SD is not supported by the library yet");
+        BytebeamLogger::Info(__FILE__, __func__, "SD file system is not supported by the SDK yet");
         return false;
 
         break;
@@ -322,13 +322,13 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
         BytebeamLogger::Info(__FILE__, __func__, "Unknown file system detected !");
 
         // Just print the log and return :)
-        BytebeamLogger::Info(__FILE__, __func__, "Make sure the architecture supports the selcted file system");
+        BytebeamLogger::Info(__FILE__, __func__, "Make sure the architecture supports the selected file system");
         return false;
 
         break;
     }
 
-    const char* path = fileName;
+    const char* path = this->fileName;
     BytebeamLogger::Info(__FILE__, __func__, "Reading file : %s", path);
 
     File file = ptrToFS->open(path, FILE_READ);
@@ -364,7 +364,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
 
     file.close();
 
-    switch(DEVICE_CONFIG_FILE_SYSTEM) {
+    switch(this->fileSystem) {
 
     /* We need to do conditional compilation here beacuse different architecture supports different file systems
      * So based on the architecture we should define the flags for the supported file system.
@@ -402,11 +402,7 @@ boolean BytebeamArduino::publishActionStatus(char* actionId, int progressPercent
   #endif
 
       default:
-        BytebeamLogger::Info(__FILE__, __func__, "Unknown file system detected !");
-
-        // Just print the log and return :)
-        BytebeamLogger::Info(__FILE__, __func__, "Make sure the architecture supports the selcted file system");
-        return false;
+        // nothing to do here yet
 
         break;
     }
@@ -569,12 +565,12 @@ void BytebeamArduino::clearBytebeamClient() {
   BytebeamLogger::Info(__FILE__, __func__, "DISCONNECTED");
 }
 
-boolean BytebeamArduino::init(const deviceConfigFileSystem fileSystem, const char* fileName) {
+boolean BytebeamArduino::initSDK() {
   // It's much better to pump up architecture inforamtion in the very beginning
   printArchitectureInfo();
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
-  if(!readDeviceConfigFile(fileSystem, fileName)) {
+  if(!readDeviceConfigFile()) {
     BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while reading the device config file.\n");
     return false;
   }
@@ -655,8 +651,8 @@ BytebeamArduino::BytebeamArduino()
 
   initActionHandlerArray();
 
-  this->isOTAEnable = false;
   this->isClientActive = false;
+  this->isOTAEnable = false;
 }
 
 BytebeamArduino::~BytebeamArduino() {
@@ -671,7 +667,13 @@ BytebeamArduino::~BytebeamArduino() {
   boolean BytebeamArduino::begin( const deviceConfigFileSystem fileSystem, 
                                   const char* fileName, 
                                   BytebeamLogger::DebugLevel level) {
-    // start with setting the bytbeam logger log level 
+    // set the device config file system
+    this->fileSystem = fileSystem;
+
+    // set the device config file name
+    this->fileName = fileName;
+
+    // set the bytbeam logger log level 
     BytebeamLogger::setLogLevel(level);
 
     // fix : ensure wifi status before using ntp methods o/w they will give hard fault
@@ -691,7 +693,7 @@ BytebeamArduino::~BytebeamArduino() {
     BytebeamLog::setTimeInstance(&BytebeamTime);
 
     // initialize the core sdk and give back the status to the user
-    bool result = init(fileSystem, fileName);
+    bool result = initSDK();
 
     return result;
   }
@@ -702,7 +704,13 @@ BytebeamArduino::~BytebeamArduino() {
                                   const deviceConfigFileSystem fileSystem, 
                                   const char* fileName,
                                   BytebeamLogger::DebugLevel level) {
-    // start with setting the bytbeam logger log level 
+    // set the device config file system
+    this->fileSystem = fileSystem;
+
+    // set the device config file name
+    this->fileName = fileName;
+
+    // set the bytbeam logger log level 
     BytebeamLogger::setLogLevel(level);
 
     // fix : ensure modem instance before using modem class methods o/w they will give hard fault
@@ -731,7 +739,7 @@ BytebeamArduino::~BytebeamArduino() {
     BytebeamLog::setTimeInstance(&BytebeamTime);
 
     // initialize the core sdk and give back the status to the user
-    bool result = init(fileSystem, fileName);
+    bool result = initSDK();
 
     return result;
   }
@@ -1194,11 +1202,11 @@ boolean BytebeamArduino::end() {
   this->deviceConfigStr = NULL;
 
   // disable the OTA if it was enabled
-  if(this->isOTAEnable) {
-    #if BYTEBEAM_OTA_ENABLE
-      disableOTA();
-    #endif
+#if BYTEBEAM_OTA_ENABLE
+  if(isOTAEnabled()) {
+    disableOTA();
   }
+#endif
 
   initActionHandlerArray();
 
@@ -1295,7 +1303,7 @@ boolean BytebeamArduino::end() {
     }
 
     // before going ahead make sure OTA is enabled
-    if(!this->isOTAEnable) {
+    if(!isOTAEnabled()) {
       BytebeamLogger::Error(__FILE__, __func__, "Bytebeam OTA is not enabled.");
       return false;
     }

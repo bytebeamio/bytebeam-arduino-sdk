@@ -132,11 +132,11 @@ private:
     boolean subscribeToActions();
     boolean unsubscribeToActions();
     boolean publishActionStatus(char* actionId, int progressPercentage, char* status, char* error);
-    boolean readDeviceConfigFile(const deviceConfigFileSystem fileSystem, const char* fileName);
+    boolean readDeviceConfigFile();
     boolean parseDeviceConfigFile();
     boolean setupBytebeamClient();
     void clearBytebeamClient();
-    boolean init(const deviceConfigFileSystem fileSystem, const char* fileName);
+    boolean initSDK();
     boolean isInitialized();
 
     // private variables
@@ -150,6 +150,8 @@ private:
     const char* clientId;
     int actionFuncsHandlerIdx;
     actionFunctionsHandler actionFuncs[BYTEBEAM_NUMBER_OF_ACTIONS];
+    deviceConfigFileSystem fileSystem;
+    const char* fileName;
     char* deviceConfigStr;
     bool isClientActive;
     bool isOTAEnable;
