@@ -1,17 +1,18 @@
 #include <time.h>
 #include <WiFi.h>
 #include <BytebeamArduino.h>
+#include "arduino_secrets.h"
 
 // temperature stream name
 char tempStream[] = "chip_temperature";
 
 // wifi credentials
-const char* WIFI_SSID     = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID     = SECRET_SSID;
+const char* WIFI_PASSWORD = SECRET_PASS;
 
 // sntp credentials
-const long  gmtOffset_sec = 19800;
-const int   daylightOffset_sec = 3600;
+const long  gmtOffset_sec = 19800;      // GMT + 5:30h
+const int   daylightOffset_sec = 0;
 const char* ntpServer = "pool.ntp.org";
 
 #ifdef __cplusplus

@@ -1,6 +1,7 @@
 #define TINY_GSM_MODEM_SIM7600
 #include <TinyGsmClient.h>
 #include <BytebeamArduino.h>
+#include "arduino_secrets.h"
 
 //
 // By including the above header you got the access to the gloabl object named Bytebeam
@@ -14,15 +15,15 @@
 #define MODEM_RX  26
 
 // set GSM PIN, if any
-#define GSM_PIN ""
+#define GSM_PIN SECRET_PIN
 
 #define SerialMon Serial
 #define SerialAT Serial1
 
 // Your GPRS credentials, if any
-const char apn[]      = "";
-const char gprsUser[] = "";
-const char gprsPass[] = "";
+const char apn[]      = SECRET_APN;
+const char gprsUser[] = SECRET_USER;
+const char gprsPass[] = SECRET_PASS;
 
 TinyGsm modem(SerialAT);
 
