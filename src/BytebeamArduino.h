@@ -100,7 +100,6 @@ public:
                         BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
-    boolean isInitialized();
     boolean loop();
     boolean isConnected();
     boolean handleActions(char* actionReceivedStr);
@@ -138,6 +137,7 @@ private:
     boolean setupBytebeamClient();
     void clearBytebeamClient();
     boolean init(const deviceConfigFileSystem fileSystem, const char* fileName);
+    boolean isInitialized();
 
     // private variables
     int mqttPort;
