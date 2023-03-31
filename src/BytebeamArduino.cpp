@@ -1232,13 +1232,13 @@ bool BytebeamArduino::end() {
     if(!BytebeamOTA.updateFirmware(otaPayloadStr, actionId)) {
       BytebeamLogger::Error(__FILE__, __func__, "Firmware Upgrade Failed.");
 
-      // clear OTA information from RAM
-      BytebeamOTA.clearOTAInfoFromRAM();
-
       // publish firmware update failure message to cloud
-      if(!Bytebeam.publishActionFailed(actionId, "Firmware Upgrade Failure")) {
+      if(!Bytebeam.publishActionFailed(actionId, BytebeamOTA.otaError)) {
         BytebeamLogger::Error(__FILE__, __func__, "Failed to publish negative response for firmware upgarde failure.");
       }
+
+      // clear OTA information from RAM
+      BytebeamOTA.clearOTAInfoFromRAM();
 
       return -1;
     } else {

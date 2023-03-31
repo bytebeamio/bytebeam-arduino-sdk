@@ -96,6 +96,7 @@ bool BytebeamOTA::parseOTAJson(char* otaPayloadStr, char* urlStringReturn) {
 }
 
 bool BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
+  int maxLen, tempVar;
   BytebeamLogger::Warn(__FILE__, __func__, "Performing OTA...");
 
   // save the OTA information in RAM
@@ -120,7 +121,14 @@ bool BytebeamOTA::performOTA(char* actionId, char* otaUrl) {
 
   switch (ret) {
     case HTTP_UPDATE_FAILED:
-      BytebeamLogger::Info(__FILE__, __func__, "HTTP_UPDATE_FAILED Error (%d): %s", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
+      maxLen = BYTEBEAM_OTA_ERROR_STR_LEN;
+      tempVar = snprintf(this->otaError, maxLen, "Error (%d): %s", this->BytebeamUpdate.getLastError(), this->BytebeamUpdate.getLastErrorString().c_str());
+
+      if(tempVar >= maxLen) {
+        BytebeamLogger::Error(__FILE__, __func__, "OTA error size exceeded buffer size");
+      }
+
+      BytebeamLogger::Info(__FILE__, __func__, "HTTP_UPDATE_FAILED %s", this->otaError);
       break;
 
     case HTTP_UPDATE_NO_UPDATES:
@@ -150,6 +158,7 @@ BytebeamOTA::BytebeamOTA()
 
   this->otaUpdateFlag = false;
   memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
+  memset(this->otaError, 0x00, BYTEBEAM_OTA_ERROR_STR_LEN);
 }
 
 BytebeamOTA::~BytebeamOTA() {
@@ -287,6 +296,7 @@ void BytebeamOTA::clearOTAInfoFromRAM() {
 
   this->otaUpdateFlag = false;
   memset(this->otaActionId, 0x00, BYTEBEAM_OTA_ACTION_ID_STR_LEN);
+  memset(this->otaError, 0x00, BYTEBEAM_OTA_ERROR_STR_LEN);
 
   BytebeamLogger::Info(__FILE__, __func__, "NVS: Clearing OTA Information From RAM");
 }

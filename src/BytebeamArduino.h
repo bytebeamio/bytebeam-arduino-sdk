@@ -18,9 +18,6 @@
 #define FILE_WRITE "w"
 #endif
 
-/* This macro is used to debug the library, we will keep all the unnecessary print under this macro */
-#define DEBUG_BYTEBEAM_ARDUINO false
-
 /* This macro is used to specify the maximum length of bytebeam mqtt topic string */
 #define BYTEBEAM_MQTT_TOPIC_STR_LEN 200
 
