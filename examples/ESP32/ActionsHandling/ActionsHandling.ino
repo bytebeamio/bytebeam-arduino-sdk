@@ -59,6 +59,12 @@ int HelloWorld_Hanlder(char* args, char* actionId) {
 
   Serial.println("Hello World");
 
+  // publish action completed status
+  if(!Bytebeam.publishActionCompleted(actionId)) {
+    Serial.println("Failed to publish action completed response for Hello World action");
+    return -1;
+  }
+
   return 0;
 }
 
@@ -69,6 +75,12 @@ int YetAnotherHelloWorld_Hanlder(char* args, char* actionId) {
   //
 
   Serial.println("Yet Another Hello World");
+
+  // publish action completed status
+  if(!Bytebeam.publishActionCompleted(actionId)) {
+    Serial.println("Failed to publish action completed response for Hello World action");
+    return -1;
+  }
 
   return 0;
 }

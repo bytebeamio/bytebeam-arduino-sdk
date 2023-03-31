@@ -129,7 +129,7 @@ int UpdateConfig_Hanlder(char* args, char* actionId) {
 
   if(err) {
     // publish action failed status
-    if(!Bytebeam.publishActionFailed(actionId)) {
+    if(!Bytebeam.publishActionFailed(actionId, "Json Deserialization Failed")) {
       Serial.println("Failed to publish action failed response for Update Config action");
     }
 
@@ -147,7 +147,7 @@ int UpdateConfig_Hanlder(char* args, char* actionId) {
   // publish led brightness to device shadow
   if(!publishToDeviceShadow()) {
     // publish action failed status
-    if(!Bytebeam.publishActionFailed(actionId)) {
+    if(!Bytebeam.publishActionFailed(actionId, "Publish led brightness to device shadow Failed")) {
       Serial.println("Failed to publish action failed response for Update Config action");
     }
 

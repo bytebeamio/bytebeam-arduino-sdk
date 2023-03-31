@@ -141,7 +141,7 @@ int ToggleLED_Hanlder(char* args, char* actionId) {
   // publish led state to device shadow
   if(!publishToDeviceShadow()) {
     // publish action failed status
-    if(!Bytebeam.publishActionFailed(actionId)) {
+    if(!Bytebeam.publishActionFailed(actionId, "Publish led state to device shadow Failed")) {
       Serial.println("Failed to publish action failed response for Toggle LED action");
     }
 
