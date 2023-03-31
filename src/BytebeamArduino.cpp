@@ -598,10 +598,18 @@ bool BytebeamArduino::initSDK() {
     return false;
   }
 
+  if(!subscribeToActions()) {
+    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while subscribe to actions.\n");
+    return false;
+  }
+
+  // this flag marks the client initialization
+  this->isClientActive = true;
+
 #if BYTEBEAM_OTA_ENABLE  
   if(BytebeamOTA.otaUpdateFlag) {
-    if(!publishActionStatus(BytebeamOTA.otaActionId, 100, "Completed", "OTA Success")) {
-      BytebeamLogger::Error(__FILE__, __func__, "Failed to publish OTA complete status.\n");
+    if(!publishActionCompleted(BytebeamOTA.otaActionId)) {
+      BytebeamLogger::Error(__FILE__, __func__, "Failed to publish OTA complete status.");
     }
 
     BytebeamOTA.clearOTAInfoFromRAM();
@@ -610,14 +618,6 @@ bool BytebeamArduino::initSDK() {
 #else
   BytebeamLogger::Info(__FILE__, __func__, "Skipped Bytebeam OTA from compilation phase i.e saving flash size");
 #endif
-
-  if(!subscribeToActions()) {
-    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while subscribe to actions.\n");
-    return false;
-  }
-
-  // this flag marks the client initialization
-  this->isClientActive = true;
 
   BytebeamLogger::Info(__FILE__, __func__, "Bytebeam Client Initialized Successfully !\n");
 
@@ -1094,7 +1094,7 @@ bool BytebeamArduino::publishActionCompleted(char* actionId) {
     return false;
   }
 
-  if(!publishActionStatus(actionId, 100, "Completed", "No Error")) {
+  if(!publishActionStatus(actionId, 100, "Completed", "")) {
     BytebeamLogger::Error(__FILE__, __func__, "publish action completed response failed, action_id : %s", actionId);
     return false;
   } else {
@@ -1103,7 +1103,7 @@ bool BytebeamArduino::publishActionCompleted(char* actionId) {
   }
 }
 
-bool BytebeamArduino::publishActionFailed(char* actionId) {
+bool BytebeamArduino::publishActionFailed(char* actionId, char* error) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1116,7 +1116,7 @@ bool BytebeamArduino::publishActionFailed(char* actionId) {
     return false;
   }
 
-  if(!publishActionStatus(actionId, 0, "Failed", "Action Failed")) {
+  if(!publishActionStatus(actionId, 0, "Failed", error)) {
     BytebeamLogger::Error(__FILE__, __func__, "publish action failed response failed, action_id : %s", actionId);
     return false;
   } else {
@@ -1125,7 +1125,7 @@ bool BytebeamArduino::publishActionFailed(char* actionId) {
   }
 }
 
-bool BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage) {
+bool BytebeamArduino::publishActionProgress(char* actionId, int progressPercentage, char* status) {
   // client should be initialized and if not just log the info to serial and abort :)
   if(!isInitialized()) {
     BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client is not Initialized.");
@@ -1138,7 +1138,7 @@ bool BytebeamArduino::publishActionProgress(char* actionId, int progressPercenta
     return false;
   }
 
-  if(!publishActionStatus(actionId, progressPercentage, "Progress", "No Error")) {
+  if(!publishActionStatus(actionId, progressPercentage, status, "")) {
     BytebeamLogger::Error(__FILE__, __func__, "publish action progress response failed, action_id : %s", actionId);
     return false;
   } else {
@@ -1236,8 +1236,8 @@ bool BytebeamArduino::end() {
       BytebeamOTA.clearOTAInfoFromRAM();
 
       // publish firmware update failure message to cloud
-      if(!Bytebeam.publishActionFailed(actionId)) {
-        BytebeamLogger::Error(__FILE__, __func__, "failed to publish negative response for firmware upgarde failure");
+      if(!Bytebeam.publishActionFailed(actionId, "Firmware Upgrade Failure")) {
+        BytebeamLogger::Error(__FILE__, __func__, "Failed to publish negative response for firmware upgarde failure.");
       }
 
       return -1;

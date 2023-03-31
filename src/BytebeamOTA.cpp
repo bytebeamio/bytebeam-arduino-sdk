@@ -17,6 +17,7 @@ void BytebeamUpdateProgress(int cur, int total) {
   static int loopVar = 0;
   static int percentOffset = 10;
   static int progressPercent = 0;
+  char* progressStatus = "Downloading";
 
   BytebeamLogger::Warn(__FILE__, __func__, "CALLBACK:  HTTP update process at %d of %d bytes", cur, total);
   progressPercent = (((float)cur / (float)total) * 100.00);
@@ -26,7 +27,7 @@ void BytebeamUpdateProgress(int cur, int total) {
     BytebeamLogger::Debug(__FILE__, __func__, "tempOtaActionId : %s", tempOtaActionId);
 
     // publish the OTA progress
-    if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent)) {
+    if(!Bytebeam.publishActionProgress(tempOtaActionId, progressPercent, progressStatus)) {
       BytebeamLogger::Error(__FILE__, __func__, "Failed to publish OTA progress status.");
     }
 

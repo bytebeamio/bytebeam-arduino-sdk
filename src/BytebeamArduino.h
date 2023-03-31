@@ -110,8 +110,8 @@ public:
     bool printActionHandlerArray();
     bool resetActionHandlerArray();
     bool publishActionCompleted(char* actionId);
-    bool publishActionFailed(char* actionId);
-    bool publishActionProgress(char* actionId, int progressPercentage);
+    bool publishActionFailed(char* actionId, char* error = "Action Failed");
+    bool publishActionProgress(char* actionId, int progressPercentage, char* status = "Progress");
     bool publishToStream(char* streamName, const char* payload);
     
     #if BYTEBEAM_OTA_ENABLE
