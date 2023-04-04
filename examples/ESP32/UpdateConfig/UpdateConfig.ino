@@ -128,18 +128,55 @@ int UpdateConfig_Hanlder(char* args, char* actionId) {
   DeserializationError err = deserializeJson(doc, args);
 
   if(err) {
+    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
+
     // publish action failed status
     if(!Bytebeam.publishActionFailed(actionId, "Json Deserialization Failed")) {
       Serial.println("Failed to publish action failed response for Update Config action");
     }
 
-    Serial.printf("deserializeJson() failed : %s\n", err.c_str());
     return -1;
   }
 
-  const char* name     = doc["name"];
+  const char* name = doc["name"];
+
+  if(name == NULL) {
+    Serial.println("Error parsing update config name");
+
+    // publish action failed status
+    if(!Bytebeam.publishActionFailed(actionId, "Error parsing update config name")) {
+      Serial.println("Failed to publish action failed response for Update Config action");
+    }
+
+    return -1;
+  }
+
   const char* version  = doc["version"];
-  ledDutyCycle         = doc["step_value"];
+
+  if(version == NULL) {
+    Serial.println("Error parsing update config version");
+
+    // publish action failed status
+    if(!Bytebeam.publishActionFailed(actionId, "Error parsing update config version")) {
+      Serial.println("Failed to publish action failed response for Update Config action");
+    }
+
+    return -1;
+  }
+
+  if(doc.containsKey("step_value")) {
+    // get the led duty cycle
+    ledDutyCycle = doc["step_value"];
+  } else {
+    Serial.println("Error parsing update config step value");
+
+    // publish action failed status
+    if(!Bytebeam.publishActionFailed(actionId, "Error parsing update config step value")) {
+      Serial.println("Failed to publish action failed response for Update Config action");
+    }
+
+    return -1;
+  }
 
   // generate the pwm signal
   analogWrite(BOARD_LED, ledDutyCycle);
