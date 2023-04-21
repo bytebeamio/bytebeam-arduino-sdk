@@ -169,6 +169,13 @@ void setup() {
   // setup the gpio led
   setupLED();
   
+  // setting up the device info i.e to be seen in the device shadow
+  Bytebeam.status          = "Device is Up!";
+  Bytebeam.softwareType    = "toggle-led-ino";
+  Bytebeam.softwareVersion = "1.0.0";
+  Bytebeam.hardwareType    = "NodeMCU 1.0 (ESP-12E Module)";
+  Bytebeam.hardwareVersion = "rev1";
+
   // begin the bytebeam client
   if(!Bytebeam.begin()) {
     Serial.println("Bytebeam Client Initialization Failed.");

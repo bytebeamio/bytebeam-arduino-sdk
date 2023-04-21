@@ -208,7 +208,14 @@ void setup() {
 
   setupWifi();
   syncTimeFromNtp();
-  
+
+  // setting up the device info i.e to be seen in the device shadow
+  Bytebeam.status          = "Device is Up!";
+  Bytebeam.softwareType    = "update-config-ino";
+  Bytebeam.softwareVersion = "1.0.0";
+  Bytebeam.hardwareType    = "ESP32 Dev Module";
+  Bytebeam.hardwareVersion = "rev1";
+
   // begin the bytebeam client
   if(!Bytebeam.begin()) {
     Serial.println("Bytebeam Client Initialization Failed.");

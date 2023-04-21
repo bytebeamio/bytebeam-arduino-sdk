@@ -137,6 +137,13 @@ void setup() {
   //  Your other application setup stuff goes here
   //
 
+  // setting up the device info i.e to be seen in the device shadow
+  Bytebeam.status          = "Device is Up!";
+  Bytebeam.softwareType    = "setup-gsm-client-ino";
+  Bytebeam.softwareVersion = "1.0.0";
+  Bytebeam.hardwareType    = "ESP32 Dev Module";
+  Bytebeam.hardwareVersion = "rev1";
+
   // This method will initialize and start the bytebeam client
   // You can over-ride the default file system, file name and library logging options, if needed
   // eg. Bytebeam.begin(BytebeamArduino::LITTLEFS_FILE_SYSTEM, "/my_device_config.json", BytebeamLogger::LOG_INFO)
