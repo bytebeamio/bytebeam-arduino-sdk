@@ -118,6 +118,13 @@ public:
     #endif
 
     bool end();
+
+    // public variables
+    const char* status;
+    const char* softwareType;
+    const char* softwareVersion;
+    const char* hardwareType;
+    const char* hardwareVersion;
     
 private:
     // private functions
@@ -135,6 +142,7 @@ private:
     void clearBytebeamClient();
     bool initSDK();
     bool isInitialized();
+    bool publishDeviceHeartbeat();
 
     // private variables
     int mqttPort;

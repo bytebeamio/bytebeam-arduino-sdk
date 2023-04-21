@@ -509,6 +509,7 @@ bool BytebeamArduino::setupBytebeamClient() {
   this->secureClient.setClientRSACert(this->clientCert, this->clientKey);
 #endif
 
+  PubSubClient::setBufferSize((uint16_t)384);
   PubSubClient::setClient(this->secureClient);
   PubSubClient::setCallback(BytebeamActionsCallback);
   PubSubClient::setServer(this->mqttBrokerUrl, this->mqttPort);
@@ -619,6 +620,11 @@ bool BytebeamArduino::initSDK() {
   BytebeamLogger::Info(__FILE__, __func__, "Skipped Bytebeam OTA from compilation phase i.e saving flash size");
 #endif
 
+  // publish the device heartbeat
+  if(!publishDeviceHeartbeat()) {
+    BytebeamLogger::Error(__FILE__, __func__, "Failed to publish device heartbeat.");
+  }
+
   BytebeamLogger::Info(__FILE__, __func__, "Bytebeam Client Initialized Successfully !\n");
 
   return true;
@@ -627,6 +633,91 @@ bool BytebeamArduino::initSDK() {
 bool BytebeamArduino::isInitialized() {
   // return the client status i.e initialized or de-initialized
   return this->isClientActive;
+}
+
+bool BytebeamArduino::publishDeviceHeartbeat() {
+  static int sequence = 0;
+  unsigned long long milliseconds = 0;
+  const char* rebootReasonStr = "";
+  unsigned long long uptime = 0;
+  const char* payload = "";
+  String deviceShadowStr = "";
+  StaticJsonDocument<1024> doc;
+
+  // get the current epoch millis
+  if(!BytebeamTime.getEpochMillis()) {
+    BytebeamLogger::Error(__FILE__, __func__, "failed to get epoch millis");
+    return false;
+  }
+
+  sequence++;
+  milliseconds = BytebeamTime.nowMillis;
+  uptime = millis();
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP32
+  esp_reset_reason_t reboot_reason_id = esp_reset_reason();
+
+  switch(reboot_reason_id) {
+      case ESP_RST_UNKNOWN   : rebootReasonStr = "Unknown Reset";            break;
+      case ESP_RST_POWERON   : rebootReasonStr = "Power On Reset";           break;
+      case ESP_RST_EXT       : rebootReasonStr = "External Pin Reset";       break;
+      case ESP_RST_SW        : rebootReasonStr = "Software Reset";           break;
+      case ESP_RST_PANIC     : rebootReasonStr = "Hard Fault Reset";         break;
+      case ESP_RST_INT_WDT   : rebootReasonStr = "Interrupt Watchdog Reset"; break;
+      case ESP_RST_TASK_WDT  : rebootReasonStr = "Task Watchdog Reset";      break;
+      case ESP_RST_WDT       : rebootReasonStr = "Other Watchdog Reset";     break;
+      case ESP_RST_DEEPSLEEP : rebootReasonStr = "Exiting Deep Sleep Reset"; break;
+      case ESP_RST_BROWNOUT  : rebootReasonStr = "Brownout Reset";           break;
+      case ESP_RST_SDIO      : rebootReasonStr = "SDIO Reset";               break;
+
+      default: rebootReasonStr = "Unknown Reset Id";
+  }
+#endif
+
+#ifdef BYTEBEAM_ARDUINO_ARCH_ESP8266
+  rebootReasonStr = ESP.getResetReason().c_str();
+#endif
+
+  // if status is not provided append the dummy one showing device activity
+  if(this->status == NULL) {
+    this->status = "Device is Active!";
+  }
+
+  JsonArray deviceShadowJsonArray = doc.to<JsonArray>();
+  JsonObject deviceShadowJsonObj_1 = deviceShadowJsonArray.createNestedObject();
+
+  deviceShadowJsonObj_1["timestamp"] = milliseconds;
+  deviceShadowJsonObj_1["sequence"]  = sequence;
+  deviceShadowJsonObj_1["Reset_Reason"] = rebootReasonStr;
+  deviceShadowJsonObj_1["Uptime"] =  uptime;
+  deviceShadowJsonObj_1["Status"] = this->status;
+
+  // if software type is provided append it else leave
+  if(this->softwareType != NULL) {
+    deviceShadowJsonObj_1["Software_Type"] = this->softwareType;
+  }
+
+  // if software version is provided append it else leave
+  if(this->softwareVersion != NULL) {
+    deviceShadowJsonObj_1["Software_Version"] = this->softwareVersion;
+  }
+
+  // if hardware type is provided append it else leave
+  if(this->hardwareType != NULL) {
+    deviceShadowJsonObj_1["Hardware_Type"] = this->hardwareType;
+  }
+
+  // if hardware version is provided append it else leave
+  if(this->hardwareVersion != NULL) {
+    deviceShadowJsonObj_1["Hardware_Version"] = this->hardwareVersion;
+  }
+
+  serializeJson(deviceShadowJsonArray, deviceShadowStr);
+  payload = deviceShadowStr.c_str();
+
+  BytebeamLogger::Info(__FILE__, __func__, "publishing device heartbeat.");
+
+  return Bytebeam.publishToStream("device_shadow", payload);
 }
 
 BytebeamArduino::BytebeamArduino()
@@ -653,6 +744,12 @@ BytebeamArduino::BytebeamArduino()
 
   this->isClientActive = false;
   this->isOTAEnable = false;
+
+  this->status = NULL;
+  this->softwareType = NULL;
+  this->softwareVersion = NULL;
+  this->hardwareType = NULL;
+  this->hardwareVersion = NULL;
 }
 
 BytebeamArduino::~BytebeamArduino() {
@@ -1211,6 +1308,12 @@ bool BytebeamArduino::end() {
   initActionHandlerArray();
 
   clearBytebeamClient();
+
+  this->status = NULL;
+  this->softwareType = NULL;
+  this->softwareVersion = NULL;
+  this->hardwareType = NULL;
+  this->hardwareVersion = NULL;
 
   // log bytebeam client duration to serial :)
   BytebeamLogger::Error(__FILE__, __func__, "Bytebeam Client Duration : %d ms", BytebeamTime.durationMillis);
