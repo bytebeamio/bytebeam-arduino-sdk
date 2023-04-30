@@ -1012,6 +1012,17 @@ bool BytebeamArduino::handleActions(char* actionReceivedStr) {
   BytebeamLogger::Debug(__FILE__, __func__, "payloadStr : %s", payloadStr);
 #endif
 
+  int32_t actionIdVal = (int32_t)(atoi(idStr));
+  int32_t lastKnownActionIdVal = (int32_t)(atoi(this->lastKnownActionId));
+
+  BytebeamLogger::Debug(__FILE__, __func__, "actionIdVal : %ld, lastKnownActionIdVal : %ld\n",actionIdVal, lastKnownActionIdVal);
+
+  // just ignore the previous actions if triggered again
+  if (actionIdVal <= lastKnownActionIdVal) {
+      BytebeamLogger::Error(__FILE__, __func__, "Ignoring %s Action", name);
+      return true;
+  }
+
   int actionIterator = 0;
   while(this->actionFuncs[actionIterator].name) {
     if (!strcmp(this->actionFuncs[actionIterator].name, name)) {
@@ -1022,8 +1033,14 @@ bool BytebeamArduino::handleActions(char* actionReceivedStr) {
   }
 
   if(this->actionFuncs[actionIterator].name == NULL) {
-    BytebeamLogger::Error(__FILE__, __func__, "invalid action : %s", name);
+    BytebeamLogger::Error(__FILE__, __func__, "Invalid Action : %s", name);
+
+    // publish action failed response indicating unregistered action
+    publishActionFailed(idStr, "Unregistered Action");
   }
+
+  // update the last known action id
+  strcpy(this->lastKnownActionId, idStr);
 
   // release the allocated memory :)
   free(idStr);
