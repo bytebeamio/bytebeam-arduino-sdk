@@ -1,6 +1,6 @@
 {
   "name": "BytebeamArduino",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A small Arduino Library for Bytebeam Cloud that just works. This library simplifies the process of communicating with Bytebeam cloud backend.",
   "keywords": "mqtt, http, gsm, iot, arduino, espressif32, espressif8266, bytebeam, device-management, ota-firmware-updates, cloud-logging",
   "license": "Apache-2.0",

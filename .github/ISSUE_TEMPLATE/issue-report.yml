@@ -55,6 +55,7 @@ body:
       description: What version of Bytebeam Arduino SDK are you running? If possible, consider updating to the latest version.
       options:
         - latest main (checkout manually)
+        - 1.0.2
         - 1.0.1
         - 1.0.0
     validations:
