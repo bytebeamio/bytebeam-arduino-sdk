@@ -4,6 +4,11 @@
     <img alt="Bytebeam Arduino Logo" src="docs/logo.png" />
 </div>
 
+---
+
+[![arduino-library-badge](https://www.ardu-badge.com/badge/BytebeamArduino.svg?)](https://www.ardu-badge.com/BytebeamArduino)
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/bytebeamio/library/BytebeamArduino.svg)](https://registry.platformio.org/libraries/bytebeamio/BytebeamArduino)
+
 This Library provides a simple client for connecting ESP devices to [Bytebeam](https://bytebeam.io/) IoT platform.
 
 ## Features :-
