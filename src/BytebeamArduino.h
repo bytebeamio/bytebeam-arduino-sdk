@@ -88,16 +88,23 @@ public:
 
     // public functions
     #ifdef BYTEBEAM_ARDUINO_USE_WIFI
-        bool begin(  const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
-                        const char* fileName = DEVICE_CONFIG_FILE_NAME,
-                        BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
+        bool begin( const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
+                    const char* fileName = DEVICE_CONFIG_FILE_NAME,
+                    BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
+
+        bool begin( char* deviceConfigData, 
+                    BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
     #ifdef BYTEBEAM_ARDUINO_USE_MODEM
-        bool begin(  TinyGsm* modem,
-                        const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
-                        const char* fileName = DEVICE_CONFIG_FILE_NAME,
-                        BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
+        bool begin( TinyGsm* modem,
+                    const deviceConfigFileSystem fileSystem = DEVICE_CONFIG_FILE_SYSTEM,
+                    const char* fileName = DEVICE_CONFIG_FILE_NAME,
+                    BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
+
+        bool begin( TinyGsm* modem,
+                    char* deviceConfigData,
+                    BytebeamLogger::DebugLevel level = BytebeamLogger::LOG_WARN);
     #endif
 
     bool loop();

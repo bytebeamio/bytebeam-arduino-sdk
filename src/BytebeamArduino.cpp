@@ -571,9 +571,13 @@ bool BytebeamArduino::initSDK() {
   printArchitectureInfo();
 
 #ifdef BYTEBEAM_ARDUINO_ARCH_SUPPORTS_FS
-  if(!readDeviceConfigFile()) {
-    BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while reading the device config file.\n");
-    return false;
+  if(this->deviceConfigStr == NULL) {
+    if(!readDeviceConfigFile()) {
+      BytebeamLogger::Error(__FILE__, __func__, "Initialization failed, error while reading the device config file.\n");
+      return false;
+    }
+  } else {
+    BytebeamLogger::Info(__FILE__, __func__, "Using Provided Device Config Data!\n");
   }
 #else
   BytebeamLogger::Info(__FILE__, __func__, "Architecture doesn't support file system");
@@ -762,8 +766,8 @@ BytebeamArduino::~BytebeamArduino() {
 
 #ifdef BYTEBEAM_ARDUINO_USE_WIFI
   bool BytebeamArduino::begin( const deviceConfigFileSystem fileSystem, 
-                                  const char* fileName, 
-                                  BytebeamLogger::DebugLevel level) {
+                               const char* fileName, 
+                               BytebeamLogger::DebugLevel level) {
     // set the device config file system
     this->fileSystem = fileSystem;
 
@@ -794,18 +798,88 @@ BytebeamArduino::~BytebeamArduino() {
 
     return result;
   }
+
+  bool BytebeamArduino::begin( char* deviceConfigData,
+                               BytebeamLogger::DebugLevel level) {
+    // set the device config data
+    this->deviceConfigStr = deviceConfigData;
+    
+    // set the bytbeam logger log level 
+    BytebeamLogger::setLogLevel(level);
+
+    // fix : ensure wifi status before using ntp methods o/w they will give hard fault
+    if(WiFi.status() != WL_CONNECTED) {
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, could not find WiFi connectivity.\n");
+      return false;
+    }
+
+    // so we got the wifi conectivity at this point
+    // before initializing the core sdk make sure time client is working fine with wifi
+    if(!BytebeamTime.begin()) {
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, time client begin failed.\n");
+      return false;
+    }
+
+    // share the time instance with the log module
+    BytebeamLog::setTimeInstance(&BytebeamTime);
+
+    // initialize the core sdk and give back the status to the user
+    bool result = initSDK();
+
+    return result;
+  }
 #endif
 
 #ifdef BYTEBEAM_ARDUINO_USE_MODEM
   bool BytebeamArduino::begin( TinyGsm* modem, 
-                                  const deviceConfigFileSystem fileSystem, 
-                                  const char* fileName,
-                                  BytebeamLogger::DebugLevel level) {
+                               const deviceConfigFileSystem fileSystem, 
+                               const char* fileName,
+                               BytebeamLogger::DebugLevel level) {
     // set the device config file system
     this->fileSystem = fileSystem;
 
     // set the device config file name
     this->fileName = fileName;
+
+    // set the bytbeam logger log level 
+    BytebeamLogger::setLogLevel(level);
+
+    // fix : ensure modem instance before using modem class methods o/w they will give hard fault
+    if(!modem) {
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, failed to get Modem instance.\n");
+      return false;
+    }
+
+    // initiaize the gsm client with the modem instance
+    this->gsmClient.init(modem, 0);
+
+    // share the modem instance with the time module
+    BytebeamTime.setModemInstance(modem);
+
+    // setup the gsm OTA client
+    BytebeamOTA.setupGsmClient(modem);
+
+    // so we got the modem conectivity at this point
+    // before initializing the core sdk make sure time client is working fine with modem
+    if(!BytebeamTime.begin()) {
+      BytebeamLogger::Error(__FILE__, __func__, "Begin abort, time client begin failed.\n");
+      return false;
+    }
+
+    // share the time instance with the log module
+    BytebeamLog::setTimeInstance(&BytebeamTime);
+
+    // initialize the core sdk and give back the status to the user
+    bool result = initSDK();
+
+    return result;
+  }
+
+  bool BytebeamArduino::begin( TinyGsm* modem,
+                               char* deviceConfigData,
+                               BytebeamLogger::DebugLevel level) {
+    // set the device config data
+    this->deviceConfigStr = deviceConfigData;
 
     // set the bytbeam logger log level 
     BytebeamLogger::setLogLevel(level);
